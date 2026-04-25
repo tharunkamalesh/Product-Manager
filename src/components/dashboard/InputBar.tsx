@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Sparkles, Loader2, Slack, Mail, Upload } from "lucide-react";
+import { Sparkles, Loader2, Mail, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -9,10 +9,6 @@ interface InputBarProps {
   onAnalyze: () => void;
   loading: boolean;
 }
-
-const SLACK_SAMPLE = `[#product-bugs] @sarah: payment crashes on Android 14 after pressing "Pay Now" — looks like the new SDK update. 12 reports already this morning.
-[#cs-escalations] @jin: enterprise customer (Acme) blocked, can't onboard new users. Needs response by EOD.
-[#general] @mike: anyone else seeing dashboard load times >5s? Started after this morning's deploy.`;
 
 const EMAIL_SAMPLE = `From: priya@bigcustomer.com
 Subject: Critical — checkout broken
@@ -33,11 +29,6 @@ export const InputBar = ({ value, onChange, onAnalyze, loading }: InputBarProps)
   const appendToInput = (text: string) => {
     const next = value.trim() ? `${value.trim()}\n\n${text}` : text;
     onChange(next);
-  };
-
-  const handleSlack = () => {
-    appendToInput(SLACK_SAMPLE);
-    toast.success("Imported sample Slack messages");
   };
 
   const handleEmail = () => {
@@ -79,12 +70,11 @@ export const InputBar = ({ value, onChange, onAnalyze, loading }: InputBarProps)
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Paste anything here... (bug reports, customer messages, slack conversations, notes, tasks…)"
+        placeholder="Paste anything here... (bug reports, customer messages, notes, tasks…)"
         className="w-full min-h-[110px] resize-none rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm placeholder:text-muted-foreground/70 focus:bg-card focus:border-primary/40 outline-none transition-smooth"
       />
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-1.5">
-          <SourceChip onClick={handleSlack} icon={<Slack className="h-3.5 w-3.5" />} label="Slack" color="text-[#611f69]" />
           <SourceChip onClick={handleEmail} icon={<Mail className="h-3.5 w-3.5" />} label="Email" color="text-info" />
           <SourceChip onClick={handleJira} icon={<JiraIcon />} label="Jira" color="text-info" />
           <SourceChip onClick={handleUpload} icon={<Upload className="h-3.5 w-3.5" />} label="Upload" color="text-muted-foreground" />

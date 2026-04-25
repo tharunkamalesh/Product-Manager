@@ -1,11 +1,10 @@
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { TopBar } from "@/components/dashboard/TopBar";
-import { Plug, Layers, MessageSquare, Calendar as CalendarIcon, ExternalLink } from "lucide-react";
+import { Plug, Layers, Calendar as CalendarIcon, ExternalLink } from "lucide-react";
 
 const Integrations = () => {
   const APPS = [
     { name: "Jira", status: "Coming Soon", icon: Layers, description: "Import bugs and sync action items with your Jira projects." },
-    { name: "Slack", status: "Coming Soon", icon: MessageSquare, description: "Extract tasks from threads and post daily summaries to channels." },
     { name: "Google Calendar", status: "Coming Soon", icon: CalendarIcon, description: "Automatically block time for high-impact priorities." },
   ];
 

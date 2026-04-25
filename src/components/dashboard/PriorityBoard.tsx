@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, ArrowUpRight, Flame, AlertCircle, CheckCircle2, User, Mail, MessageSquare, Layers, Clock, AlertTriangle } from "lucide-react";
+import { Sparkles, ArrowUpRight, Flame, AlertCircle, CheckCircle2, User, Mail, Layers, Clock, AlertTriangle } from "lucide-react";
 import type { Priority } from "@/types/copilot";
 import { cn } from "@/lib/utils";
 
@@ -156,7 +156,7 @@ const PriorityCard = ({ item, bucket, expanded }: { item: Priority; bucket: Buck
 
   // Mock data for new fields if they don't exist
   const assignee = item.assignee || (bucket === "high" ? "AV" : "JD");
-  const source = item.source || (bucket === "high" ? "Jira" : bucket === "medium" ? "Slack" : "Email");
+  const source = item.source || (bucket === "high" ? "Jira" : "Email");
   const dueDate = item.dueDate || "Oct 28";
   const isOverdue = bucket === "high";
 
@@ -165,7 +165,7 @@ const PriorityCard = ({ item, bucket, expanded }: { item: Priority; bucket: Buck
   const title = (lines[0] || item.task).slice(0, 60);
   const subtitle = lines.slice(1).join(" · ").slice(0, 80) || item.reasoning.slice(0, 80);
 
-  const SourceIcon = source === "Jira" ? Layers : source === "Slack" ? MessageSquare : Mail;
+  const SourceIcon = source === "Jira" ? Layers : Mail;
 
   return (
     <article className="rounded-lg bg-card border border-border p-3 shadow-soft hover:shadow-card transition-smooth relative group">

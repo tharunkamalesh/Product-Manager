@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, FileText, ListPlus, Send, Download, CheckCircle2, AlertCircle, Clock, MoreHorizontal } from "lucide-react";
+import { Calendar, FileText, ListPlus, Download, CheckCircle2, AlertCircle, Clock, MoreHorizontal } from "lucide-react";
 import type { AnalysisResult, Memory } from "@/types/copilot";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -35,7 +35,6 @@ export const RightRail = ({ result, memory, useMemory, onToggleUseMemory, onSetG
   const [activityExpanded, setActivityExpanded] = useState(false);
   const [integrations, setIntegrations] = useState<Record<string, boolean>>({
     Jira: true,
-    Slack: true,
     "Google Calendar": true,
   });
 
@@ -60,17 +59,6 @@ export const RightRail = ({ result, memory, useMemory, onToggleUseMemory, onSetG
     const count = result!.topPriorities.length;
     toast.success(`Created ${count} Jira task${count === 1 ? "" : "s"} (demo)`, {
       description: "In production, this would post to your Jira project.",
-    });
-  };
-
-  const handleSendSlack = () => {
-    if (!requireResult("send to Slack")) return;
-    if (!integrations.Slack) {
-      toast.error("Slack not connected", { description: "Connect Slack from Integrations." });
-      return;
-    }
-    toast.success("Posted summary to #pm-daily (demo)", {
-      description: `${result!.topPriorities.length} top priorities shared.`,
     });
   };
 
@@ -169,7 +157,6 @@ export const RightRail = ({ result, memory, useMemory, onToggleUseMemory, onSetG
         </header>
         <div className="space-y-1">
           <QuickAction onClick={handleCreateJira} icon={<ListPlus className="h-4 w-4 text-info" />} label="Create Jira Task" />
-          <QuickAction onClick={handleSendSlack} icon={<Send className="h-4 w-4 text-[#611f69]" />} label="Send to Slack" />
         </div>
       </div>
 
