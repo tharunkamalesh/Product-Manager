@@ -63,6 +63,17 @@ export default {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
         },
+        priority: {
+          high: "hsl(var(--priority-high))",
+          "high-soft": "hsl(var(--priority-high-soft))",
+          "high-border": "hsl(var(--priority-high-border))",
+          medium: "hsl(var(--priority-medium))",
+          "medium-soft": "hsl(var(--priority-medium-soft))",
+          "medium-border": "hsl(var(--priority-medium-border))",
+          low: "hsl(var(--priority-low))",
+          "low-soft": "hsl(var(--priority-low-soft))",
+          "low-border": "hsl(var(--priority-low-border))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
