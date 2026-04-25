@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { AppHeader } from "@/components/AppHeader";
-import { InputPanel } from "@/components/InputPanel";
-import { OutputPanel } from "@/components/OutputPanel";
-import { MemoryPanel } from "@/components/MemoryPanel";
+import { useState, useMemo } from "react";
+import { Sidebar } from "@/components/dashboard/Sidebar";
+import { TopBar } from "@/components/dashboard/TopBar";
+import { InputBar } from "@/components/dashboard/InputBar";
+import { PriorityBoard } from "@/components/dashboard/PriorityBoard";
+import { ActionPlanCard } from "@/components/dashboard/ActionPlanCard";
+import { RightRail } from "@/components/dashboard/RightRail";
 import { useMemory } from "@/hooks/useMemory";
 import { analyzeInput } from "@/lib/analyzer";
-import type { AnalysisResult } from "@/types/copilot";
+import type { AnalysisResult, Priority } from "@/types/copilot";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -29,47 +31,72 @@ const Index = () => {
     }
   };
 
+  // Bucket all items into High / Medium / Low for the 3-column board
+  const { high, medium, low } = useMemo(() => {
+    const buckets = { high: [] as Priority[], medium: [] as Priority[], low: [] as Priority[] };
+    if (!result) return buckets;
+
+    // Top priorities are richly typed already
+    for (const p of result.topPriorities) {
+      const key = p.impact.toLowerCase() as "high" | "medium" | "low";
+      buckets[key].push(p);
+    }
+    // Secondary → medium with sensible defaults
+    for (const s of result.secondary) {
+      buckets.medium.push({
+        task: s,
+        impact: "Medium",
+        urgency: "Medium",
+        effort: "Medium",
+        reasoning: "Secondary task — handle after top priorities.",
+        memoryInfluence: "",
+      });
+    }
+    // Ignored → low
+    for (const s of result.ignore) {
+      buckets.low.push({
+        task: s,
+        impact: "Low",
+        urgency: "Low",
+        effort: "Low",
+        reasoning: "Defer — low signal, low leverage.",
+        memoryInfluence: "",
+      });
+    }
+    return buckets;
+  }, [result]);
+
   return (
-    <div className="min-h-screen bg-background relative">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-glow" />
-      <div className="relative">
-        <AppHeader />
+    <div className="min-h-screen bg-background flex">
+      <Sidebar />
 
-        <main className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6 lg:py-8">
-          <div className="mb-6 lg:mb-8">
-            <h2 className="text-2xl lg:text-3xl font-semibold tracking-tight">
-              What should you do <span className="bg-gradient-primary bg-clip-text text-transparent">today</span>?
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1.5 max-w-xl">
-              Drop your messy thoughts. Get a prioritized plan with reasoning in under 60 seconds.
-            </p>
-          </div>
+      <div className="flex-1 min-w-0">
+        <TopBar />
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6">
-            {/* Memory (top on mobile, left rail on desktop) */}
-            <div className="lg:col-span-3 order-1 lg:order-1">
-              <MemoryPanel
+        <main className="px-5 py-5">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+            {/* Center column */}
+            <div className="xl:col-span-9 space-y-5 min-w-0">
+              <InputBar
+                value={input}
+                onChange={setInput}
+                onAnalyze={handleAnalyze}
+                loading={loading}
+              />
+              <PriorityBoard high={high} medium={medium} low={low} hasResult={!!result} />
+              <ActionPlanCard steps={result?.actionPlan ?? []} />
+            </div>
+
+            {/* Right rail */}
+            <div className="xl:col-span-3">
+              <RightRail
+                result={result}
                 memory={memory}
                 useMemory={useMemoryToggle}
                 onToggleUseMemory={setUseMemoryToggle}
                 onSetGoal={setGoal}
                 onClear={clearMemory}
               />
-            </div>
-
-            {/* Input */}
-            <div className="lg:col-span-4 order-2 lg:order-2 min-h-[480px]">
-              <InputPanel
-                value={input}
-                onChange={setInput}
-                onAnalyze={handleAnalyze}
-                loading={loading}
-              />
-            </div>
-
-            {/* Output */}
-            <div className="lg:col-span-5 order-3 lg:order-3 min-h-[480px] lg:max-h-[calc(100vh-180px)]">
-              <OutputPanel result={result} loading={loading} />
             </div>
           </div>
         </main>
