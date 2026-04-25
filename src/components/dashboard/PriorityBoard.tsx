@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Sparkles, ArrowUpRight, Flame, AlertCircle, CheckCircle2 } from "lucide-react";
 import type { Priority } from "@/types/copilot";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,8 @@ const BUCKET_META: Record<Bucket, { label: string; emoji: string; icon: any; bg:
   },
 };
 
+const COLLAPSED_LIMIT = 3;
+
 interface PriorityBoardProps {
   high: Priority[];
   medium: Priority[];
@@ -51,8 +54,25 @@ interface PriorityBoardProps {
 }
 
 export const PriorityBoard = ({ high, medium, low, hasResult }: PriorityBoardProps) => {
+  const [expanded, setExpanded] = useState<Record<Bucket, boolean>>({
+    high: false,
+    medium: false,
+    low: false,
+  });
+
+  const allExpanded = expanded.high && expanded.medium && expanded.low;
+
+  const toggleAll = () => {
+    const next = !allExpanded;
+    setExpanded({ high: next, medium: next, low: next });
+  };
+
+  const toggleBucket = (bucket: Bucket) => {
+    setExpanded((prev) => ({ ...prev, [bucket]: !prev[bucket] }));
+  };
+
   return (
-    <section className="rounded-xl border border-border bg-card shadow-card p-5">
+    <section id="priority-board" className="rounded-xl border border-border bg-card shadow-card p-5">
       <header className="flex items-start justify-between gap-3 mb-4">
         <div>
           <div className="flex items-center gap-2">
@@ -63,22 +83,28 @@ export const PriorityBoard = ({ high, medium, low, hasResult }: PriorityBoardPro
             Based on impact, urgency, effort & context
           </p>
         </div>
-        <button className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1">
-          View all <ArrowUpRight className="h-3 w-3" />
+        <button
+          onClick={toggleAll}
+          className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1"
+        >
+          {allExpanded ? "Collapse all" : "View all"} <ArrowUpRight className="h-3 w-3" />
         </button>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Column bucket="high" items={high} hasResult={hasResult} />
-        <Column bucket="medium" items={medium} hasResult={hasResult} />
-        <Column bucket="low" items={low} hasResult={hasResult} />
+        <Column bucket="high" items={high} hasResult={hasResult} expanded={expanded.high} onToggle={() => toggleBucket("high")} />
+        <Column bucket="medium" items={medium} hasResult={hasResult} expanded={expanded.medium} onToggle={() => toggleBucket("medium")} />
+        <Column bucket="low" items={low} hasResult={hasResult} expanded={expanded.low} onToggle={() => toggleBucket("low")} />
       </div>
     </section>
   );
 };
 
-const Column = ({ bucket, items, hasResult }: { bucket: Bucket; items: Priority[]; hasResult: boolean }) => {
+const Column = ({ bucket, items, hasResult, expanded, onToggle }: { bucket: Bucket; items: Priority[]; hasResult: boolean; expanded: boolean; onToggle: () => void }) => {
   const meta = BUCKET_META[bucket];
+  const visible = expanded ? items : items.slice(0, COLLAPSED_LIMIT);
+  const hiddenCount = items.length - visible.length;
+
   return (
     <div className={cn("rounded-xl border p-3", meta.bg, meta.border)}>
       <div className="flex items-center justify-between mb-3 px-1">
@@ -96,12 +122,21 @@ const Column = ({ bucket, items, hasResult }: { bucket: Bucket; items: Priority[
             </p>
           </div>
         ) : (
-          items.map((p, i) => <PriorityCard key={i} item={p} bucket={bucket} />)
+          visible.map((p, i) => <PriorityCard key={i} item={p} bucket={bucket} expanded={expanded} />)
         )}
 
-        {items.length > 0 && (
-          <button className={cn("w-full text-xs font-medium pt-1 inline-flex items-center justify-center gap-1 hover:underline", meta.text)}>
-            View all ({items.length}) →
+        {items.length > COLLAPSED_LIMIT && (
+          <button
+            onClick={onToggle}
+            className={cn(
+              "w-full text-xs font-medium pt-1 inline-flex items-center justify-center gap-1 hover:underline",
+              meta.text
+            )}
+          >
+            {expanded ? "Show less ↑" : `View all (${items.length}) →`}
+            {!expanded && hiddenCount > 0 && (
+              <span className="text-muted-foreground"> · {hiddenCount} more</span>
+            )}
           </button>
         )}
       </div>
@@ -109,7 +144,7 @@ const Column = ({ bucket, items, hasResult }: { bucket: Bucket; items: Priority[
   );
 };
 
-const PriorityCard = ({ item, bucket }: { item: Priority; bucket: Bucket }) => {
+const PriorityCard = ({ item, bucket, expanded }: { item: Priority; bucket: Bucket; expanded: boolean }) => {
   const meta = BUCKET_META[bucket];
   const tag = bucket === "high" ? "Critical" : bucket === "medium" ? "Medium" : "Low";
   const tagClass =
@@ -132,9 +167,17 @@ const PriorityCard = ({ item, bucket }: { item: Priority; bucket: Bucket }) => {
           {tag}
         </span>
       </div>
-      <p className="text-[11.5px] text-muted-foreground leading-snug mb-2.5 line-clamp-2">
+      <p className={cn(
+        "text-[11.5px] text-muted-foreground leading-snug mb-2.5",
+        !expanded && "line-clamp-2"
+      )}>
         {subtitle}
       </p>
+      {expanded && item.memoryInfluence && (
+        <p className="text-[11px] italic text-muted-foreground leading-snug mb-2.5 border-l-2 border-primary/30 pl-2">
+          {item.memoryInfluence}
+        </p>
+      )}
       <div className="flex items-center justify-between pt-2 border-t border-border/70">
         <div className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
           <span className="font-medium text-foreground/70">Task</span>

@@ -1,5 +1,7 @@
+import { useRef } from "react";
 import { Sparkles, Loader2, Slack, Mail, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface InputBarProps {
   value: string;
@@ -8,7 +10,69 @@ interface InputBarProps {
   loading: boolean;
 }
 
+const SLACK_SAMPLE = `[#product-bugs] @sarah: payment crashes on Android 14 after pressing "Pay Now" — looks like the new SDK update. 12 reports already this morning.
+[#cs-escalations] @jin: enterprise customer (Acme) blocked, can't onboard new users. Needs response by EOD.
+[#general] @mike: anyone else seeing dashboard load times >5s? Started after this morning's deploy.`;
+
+const EMAIL_SAMPLE = `From: priya@bigcustomer.com
+Subject: Critical — checkout broken
+Our team can't complete purchases since this morning. We're losing ~$2k/hour. Please advise.
+
+From: alex@partner.io
+Subject: Re: Q2 roadmap sync
+Can we move tomorrow's call to Thursday? Also, can you share the proposal deck?`;
+
+const JIRA_SAMPLE = `BUG-1421 (P1) — Payment SDK crash on Android 14 after Pay Now tap
+BUG-1418 (P2) — Dashboard slow load (>5s) after morning deploy
+TASK-902 — Q2 roadmap deck for partner review
+SUPP-330 — Acme onboarding blocked, multiple admins can't invite users`;
+
 export const InputBar = ({ value, onChange, onAnalyze, loading }: InputBarProps) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const appendToInput = (text: string) => {
+    const next = value.trim() ? `${value.trim()}\n\n${text}` : text;
+    onChange(next);
+  };
+
+  const handleSlack = () => {
+    appendToInput(SLACK_SAMPLE);
+    toast.success("Imported sample Slack messages");
+  };
+
+  const handleEmail = () => {
+    appendToInput(EMAIL_SAMPLE);
+    toast.success("Imported sample emails");
+  };
+
+  const handleJira = () => {
+    appendToInput(JIRA_SAMPLE);
+    toast.success("Imported sample Jira issues");
+  };
+
+  const handleUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1_000_000) {
+      toast.error("File too large", { description: "Please upload a file under 1 MB." });
+      e.target.value = "";
+      return;
+    }
+    try {
+      const text = await file.text();
+      appendToInput(text);
+      toast.success(`Loaded ${file.name}`);
+    } catch {
+      toast.error("Could not read file");
+    } finally {
+      e.target.value = "";
+    }
+  };
+
   return (
     <section className="rounded-xl border border-border bg-card shadow-card p-5">
       <h2 className="text-sm font-semibold mb-3">Capture your daily problems, tasks, bugs, messages...</h2>
@@ -20,10 +84,17 @@ export const InputBar = ({ value, onChange, onAnalyze, loading }: InputBarProps)
       />
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-1.5">
-          <SourceChip icon={<Slack className="h-3.5 w-3.5" />} label="Slack" color="text-[#611f69]" />
-          <SourceChip icon={<Mail className="h-3.5 w-3.5" />} label="Email" color="text-info" />
-          <SourceChip icon={<JiraIcon />} label="Jira" color="text-info" />
-          <SourceChip icon={<Upload className="h-3.5 w-3.5" />} label="Upload" color="text-muted-foreground" />
+          <SourceChip onClick={handleSlack} icon={<Slack className="h-3.5 w-3.5" />} label="Slack" color="text-[#611f69]" />
+          <SourceChip onClick={handleEmail} icon={<Mail className="h-3.5 w-3.5" />} label="Email" color="text-info" />
+          <SourceChip onClick={handleJira} icon={<JiraIcon />} label="Jira" color="text-info" />
+          <SourceChip onClick={handleUpload} icon={<Upload className="h-3.5 w-3.5" />} label="Upload" color="text-muted-foreground" />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,.md,.csv,.json,.log"
+            onChange={handleFile}
+            className="hidden"
+          />
         </div>
         <Button
           onClick={onAnalyze}
@@ -48,9 +119,10 @@ export const InputBar = ({ value, onChange, onAnalyze, loading }: InputBarProps)
   );
 };
 
-const SourceChip = ({ icon, label, color }: { icon: React.ReactNode; label: string; color: string }) => (
+const SourceChip = ({ icon, label, color, onClick }: { icon: React.ReactNode; label: string; color: string; onClick: () => void }) => (
   <button
     type="button"
+    onClick={onClick}
     className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border bg-card hover:bg-muted text-xs font-medium transition-smooth"
   >
     <span className={color}>{icon}</span>

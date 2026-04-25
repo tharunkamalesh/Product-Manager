@@ -1,7 +1,9 @@
-import { Calendar, FileText, Slack as SlackIcon, ListPlus, Send, Download, CheckCircle2, AlertCircle, Clock, Bug } from "lucide-react";
+import { useState } from "react";
+import { Calendar, FileText, ListPlus, Send, Download, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import type { AnalysisResult, Memory } from "@/types/copilot";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 interface RightRailProps {
   result: AnalysisResult | null;
@@ -12,11 +14,113 @@ interface RightRailProps {
   onClear: () => void;
 }
 
+const ALL_ACTIVITY = [
+  { tone: "success" as const, text: "Payment crash issue updated", time: "2h ago" },
+  { tone: "info" as const, text: "New bug imported from Jira", time: "3h ago" },
+  { tone: "warning" as const, text: "Action plan generated", time: "3h ago" },
+  { tone: "success" as const, text: "Server issue resolved", time: "5h ago" },
+  { tone: "info" as const, text: "Slack thread synced", time: "1d ago" },
+  { tone: "warning" as const, text: "Goal updated", time: "2d ago" },
+  { tone: "success" as const, text: "Memory context refreshed", time: "3d ago" },
+];
+
 export const RightRail = ({ result, memory, useMemory, onToggleUseMemory, onSetGoal, onClear }: RightRailProps) => {
+  const [activityExpanded, setActivityExpanded] = useState(false);
+  const [integrations, setIntegrations] = useState<Record<string, boolean>>({
+    Jira: true,
+    Slack: true,
+    "Google Calendar": true,
+  });
+
   const total = result ? result.topPriorities.length + result.secondary.length + result.ignore.length : 0;
   const high = result?.topPriorities.filter((p) => p.impact === "High").length ?? 0;
-  const medium = result?.topPriorities.filter((p) => p.impact === "Medium").length ?? 0 + (result?.secondary.length ?? 0);
   const low = result?.ignore.length ?? 0;
+
+  const requireResult = (action: string): boolean => {
+    if (result) return true;
+    toast.error("Nothing to send", {
+      description: `Run an analysis first, then ${action}.`,
+    });
+    return false;
+  };
+
+  const handleCreateJira = () => {
+    if (!requireResult("create Jira tasks")) return;
+    if (!integrations.Jira) {
+      toast.error("Jira not connected", { description: "Connect Jira from Integrations." });
+      return;
+    }
+    const count = result!.topPriorities.length;
+    toast.success(`Created ${count} Jira task${count === 1 ? "" : "s"} (demo)`, {
+      description: "In production, this would post to your Jira project.",
+    });
+  };
+
+  const handleSendSlack = () => {
+    if (!requireResult("send to Slack")) return;
+    if (!integrations.Slack) {
+      toast.error("Slack not connected", { description: "Connect Slack from Integrations." });
+      return;
+    }
+    toast.success("Posted summary to #pm-daily (demo)", {
+      description: `${result!.topPriorities.length} top priorities shared.`,
+    });
+  };
+
+  const handleAddCalendar = () => {
+    if (!requireResult("add to calendar")) return;
+    if (!integrations["Google Calendar"]) {
+      toast.error("Google Calendar not connected", { description: "Connect Calendar from Integrations." });
+      return;
+    }
+    const count = result!.actionPlan.length;
+    toast.success(`Added ${count} block${count === 1 ? "" : "s"} to calendar (demo)`);
+  };
+
+  const handleExport = () => {
+    if (!requireResult("export a report")) return;
+    const lines: string[] = [
+      `# PM Daily Copilot — ${new Date().toLocaleDateString()}`,
+      "",
+      `## Top priorities (${result!.topPriorities.length})`,
+      ...result!.topPriorities.map((p, i) => `${i + 1}. [${p.impact}] ${p.task}\n   - ${p.reasoning}`),
+      "",
+      `## Secondary (${result!.secondary.length})`,
+      ...result!.secondary.map((s, i) => `${i + 1}. ${s}`),
+      "",
+      `## Ignored (${result!.ignore.length})`,
+      ...result!.ignore.map((s, i) => `${i + 1}. ${s}`),
+      "",
+      `## Action plan`,
+      ...result!.actionPlan.map((a, i) => `${i + 1}. ${a.task} — ${a.nextStep} (~${a.timeEstimate})`),
+    ];
+    const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pm-daily-${new Date().toISOString().slice(0, 10)}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Report downloaded");
+  };
+
+  const toggleIntegration = (name: string) => {
+    setIntegrations((prev) => {
+      const next = { ...prev, [name]: !prev[name] };
+      toast.message(`${name} ${next[name] ? "connected" : "disconnected"}`);
+      return next;
+    });
+  };
+
+  const handleManageAll = () => {
+    toast.message("Integrations", {
+      description: "Click each integration's status badge to toggle (demo).",
+    });
+  };
+
+  const visibleActivity = activityExpanded ? ALL_ACTIVITY : ALL_ACTIVITY.slice(0, 4);
 
   return (
     <aside className="space-y-4">
@@ -38,10 +142,10 @@ export const RightRail = ({ result, memory, useMemory, onToggleUseMemory, onSetG
       <div className="rounded-xl border border-border bg-card shadow-card p-4">
         <h3 className="text-sm font-semibold mb-3">Quick Actions</h3>
         <div className="space-y-1">
-          <QuickAction icon={<ListPlus className="h-4 w-4 text-info" />} label="Create Jira Task" />
-          <QuickAction icon={<Send className="h-4 w-4 text-[#611f69]" />} label="Send to Slack" />
-          <QuickAction icon={<Calendar className="h-4 w-4 text-primary" />} label="Add to Calendar" />
-          <QuickAction icon={<Download className="h-4 w-4 text-muted-foreground" />} label="Export Report" />
+          <QuickAction onClick={handleCreateJira} icon={<ListPlus className="h-4 w-4 text-info" />} label="Create Jira Task" />
+          <QuickAction onClick={handleSendSlack} icon={<Send className="h-4 w-4 text-[#611f69]" />} label="Send to Slack" />
+          <QuickAction onClick={handleAddCalendar} icon={<Calendar className="h-4 w-4 text-primary" />} label="Add to Calendar" />
+          <QuickAction onClick={handleExport} icon={<Download className="h-4 w-4 text-muted-foreground" />} label="Export Report" />
         </div>
       </div>
 
@@ -85,15 +189,17 @@ export const RightRail = ({ result, memory, useMemory, onToggleUseMemory, onSetG
       </div>
 
       {/* Integrations */}
-      <div className="rounded-xl border border-border bg-card shadow-card p-4">
+      <div id="integrations-panel" className="rounded-xl border border-border bg-card shadow-card p-4">
         <header className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">Integrations</h3>
-          <button className="text-[11px] font-medium text-primary hover:underline">Manage all</button>
+          <button onClick={handleManageAll} className="text-[11px] font-medium text-primary hover:underline">
+            Manage all
+          </button>
         </header>
         <div className="space-y-2">
-          <Integration name="Jira" connected />
-          <Integration name="Slack" connected />
-          <Integration name="Google Calendar" connected />
+          {Object.entries(integrations).map(([name, connected]) => (
+            <Integration key={name} name={name} connected={connected} onToggle={() => toggleIntegration(name)} />
+          ))}
         </div>
       </div>
 
@@ -101,13 +207,15 @@ export const RightRail = ({ result, memory, useMemory, onToggleUseMemory, onSetG
       <div className="rounded-xl border border-border bg-card shadow-card p-4">
         <h3 className="text-sm font-semibold mb-3">Recent Activity</h3>
         <ul className="space-y-2.5">
-          <Activity tone="success" text="Payment crash issue updated" time="2h ago" />
-          <Activity tone="info" text="New bug imported from Jira" time="3h ago" />
-          <Activity tone="warning" text="Action plan generated" time="3h ago" />
-          <Activity tone="success" text="Server issue resolved" time="5h ago" />
+          {visibleActivity.map((a, i) => (
+            <Activity key={i} tone={a.tone} text={a.text} time={a.time} />
+          ))}
         </ul>
-        <button className="mt-3 text-[11px] font-medium text-primary hover:underline">
-          View all activity →
+        <button
+          onClick={() => setActivityExpanded((v) => !v)}
+          className="mt-3 text-[11px] font-medium text-primary hover:underline"
+        >
+          {activityExpanded ? "Show less ↑" : "View all activity →"}
         </button>
       </div>
     </aside>
@@ -132,19 +240,29 @@ const SummaryStat = ({ label, value, icon, tone }: { label: string; value: numbe
   );
 };
 
-const QuickAction = ({ icon, label }: { icon: React.ReactNode; label: string }) => (
-  <button className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-muted text-sm text-foreground/85 transition-smooth">
+const QuickAction = ({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-muted text-sm text-foreground/85 transition-smooth"
+  >
     {icon}
     {label}
   </button>
 );
 
-const Integration = ({ name, connected }: { name: string; connected: boolean }) => (
+const Integration = ({ name, connected, onToggle }: { name: string; connected: boolean; onToggle: () => void }) => (
   <div className="flex items-center justify-between text-xs">
     <span className="font-medium text-foreground/85">{name}</span>
-    <span className={connected ? "text-[10px] font-semibold px-2 py-0.5 rounded bg-priority-low-soft text-priority-low" : "text-[10px] font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground"}>
+    <button
+      onClick={onToggle}
+      className={
+        connected
+          ? "text-[10px] font-semibold px-2 py-0.5 rounded bg-priority-low-soft text-priority-low hover:opacity-80 transition-smooth"
+          : "text-[10px] font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground hover:bg-muted/70 transition-smooth"
+      }
+    >
       {connected ? "Connected" : "Off"}
-    </span>
+    </button>
   </div>
 );
 
