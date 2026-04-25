@@ -20,6 +20,9 @@ export const ActionPlanCard = ({ steps }: ActionPlanCardProps) => {
   const [done, setDone] = useState<Record<number, boolean>>({});
   const [assignees, setAssignees] = useState<Record<number, string>>({});
 
+  const doneCount = Object.values(done).filter(Boolean).length;
+  const progressPercent = steps.length > 0 ? Math.round((doneCount / steps.length) * 100) : 0;
+
   useEffect(() => {
     setDone({});
     setAssignees({});
@@ -49,8 +52,8 @@ export const ActionPlanCard = ({ steps }: ActionPlanCardProps) => {
 
   return (
     <section id="action-plan" className="rounded-xl border border-border bg-card shadow-card p-5">
-      <header className="flex items-start justify-between gap-3 mb-1">
-        <div>
+      <header className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
+        <div className="flex-1">
           <div className="flex items-center gap-2">
             <ListChecks className="h-4 w-4 text-primary" />
             <h2 className="text-base font-semibold">AI Generated Action Plan</h2>
@@ -58,15 +61,33 @@ export const ActionPlanCard = ({ steps }: ActionPlanCardProps) => {
           <p className="text-xs text-muted-foreground mt-0.5">
             Step-by-step plan to tackle today's top priorities
           </p>
+          
+          {/* Progress Overview */}
+          {steps.length > 0 && (
+            <div className="mt-3 space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] font-medium">
+                <span className="text-muted-foreground">Today's Progress</span>
+                <span className="text-primary">{progressPercent}%</span>
+              </div>
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary transition-all duration-500 ease-in-out" 
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
-        <button
-          onClick={handleCopy}
-          disabled={!steps.length}
-          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-smooth disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Copy className="h-3.5 w-3.5" />
-          Copy Plan
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleCopy}
+            disabled={!steps.length}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-smooth disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Copy className="h-3.5 w-3.5" />
+            Copy Plan
+          </button>
+        </div>
       </header>
 
       <ul className="mt-4 divide-y divide-border">

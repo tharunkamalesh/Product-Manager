@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Search, ChevronDown, LogOut, User, Settings as SettingsIcon } from "lucide-react";
+import { Bell, Search, ChevronDown, LogOut, User, Settings as SettingsIcon, Moon, Sun, Filter } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { toast } from "sonner";
+import { useTheme } from "@/components/theme-provider";
 
 const NOTIFICATIONS = [
   { id: 1, title: "New bug imported from Jira", time: "3h ago", unread: true },
@@ -22,6 +23,7 @@ const NOTIFICATIONS = [
 ];
 
 export const TopBar = () => {
+  const { theme, setTheme } = useTheme();
   const [query, setQuery] = useState("");
   const [unread, setUnread] = useState(NOTIFICATIONS.filter((n) => n.unread).length);
 
@@ -73,6 +75,60 @@ export const TopBar = () => {
 
       {/* Right cluster */}
       <div className="flex items-center gap-3 ml-auto">
+        {/* Theme Toggle */}
+        <button
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="h-9 w-9 rounded-lg hover:bg-muted flex items-center justify-center transition-smooth"
+          aria-label="Toggle theme"
+        >
+          {theme === "dark" ? (
+            <Sun className="h-4 w-4 text-foreground/70" />
+          ) : (
+            <Moon className="h-4 w-4 text-foreground/70" />
+          )}
+        </button>
+
+        {/* Filters */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              className="h-9 w-9 rounded-lg hover:bg-muted flex items-center justify-center transition-smooth"
+              aria-label="Filters"
+            >
+              <Filter className="h-4 w-4 text-foreground/70" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-64">
+            <div className="p-3 space-y-4">
+              <p className="text-sm font-semibold">Advanced Filters</p>
+              <div className="space-y-2">
+                <label className="text-xs font-medium">Priority</label>
+                <select className="w-full h-8 text-xs bg-muted border border-border rounded px-2 outline-none">
+                  <option>All Priorities</option>
+                  <option>High</option>
+                  <option>Medium</option>
+                  <option>Low</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium">Status</label>
+                <select className="w-full h-8 text-xs bg-muted border border-border rounded px-2 outline-none">
+                  <option>All Statuses</option>
+                  <option>Open</option>
+                  <option>In Progress</option>
+                  <option>Closed</option>
+                </select>
+              </div>
+              <button
+                className="w-full py-1.5 bg-primary text-primary-foreground text-xs font-medium rounded hover:opacity-90"
+                onClick={() => toast.success("Filters applied")}
+              >
+                Apply Filters
+              </button>
+            </div>
+          </PopoverContent>
+        </Popover>
+
         {/* Notifications */}
         <Popover>
           <PopoverTrigger asChild>

@@ -146,7 +146,14 @@ export async function analyzeInput(
     return { task: s.item, nextStep: ns.step, timeEstimate: ns.time };
   });
 
-  return { topPriorities, secondary, ignore, actionPlan };
+  return {
+    id: Math.random().toString(36).substring(2, 9),
+    timestamp: new Date().toISOString(),
+    topPriorities,
+    secondary,
+    ignore,
+    actionPlan,
+  };
 }
 
 export function extractPatterns(history: string[]): string[] {

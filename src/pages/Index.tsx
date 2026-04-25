@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { TopBar } from "@/components/dashboard/TopBar";
 import { InputBar } from "@/components/dashboard/InputBar";
@@ -6,16 +7,40 @@ import { PriorityBoard } from "@/components/dashboard/PriorityBoard";
 import { ActionPlanCard } from "@/components/dashboard/ActionPlanCard";
 import { RightRail } from "@/components/dashboard/RightRail";
 import { useMemory } from "@/hooks/useMemory";
+import { useCopilot } from "@/hooks/useCopilot";
 import { analyzeInput } from "@/lib/analyzer";
 import type { AnalysisResult, Priority } from "@/types/copilot";
 import { toast } from "sonner";
 
 const Index = () => {
+  const location = useLocation();
+  const { memory, setGoal, ingestResult, clearMemory } = useMemory();
+  const { latestResult, saveToHistory } = useCopilot();
+
   const [input, setInput] = useState("");
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(latestResult);
   const [loading, setLoading] = useState(false);
   const [useMemoryToggle, setUseMemoryToggle] = useState(true);
-  const { memory, setGoal, ingestResult, clearMemory } = useMemory();
+
+  // Sync with latest result if it changes (e.g. from history clear)
+  useEffect(() => {
+    setResult(latestResult);
+  }, [latestResult]);
+
+  // Handle analyze request from router state (from Inbox)
+  useEffect(() => {
+    const state = location.state as { analyze?: string };
+    if (state?.analyze) {
+      setInput(state.analyze);
+      // Short delay to ensure state is set before trigger
+      setTimeout(() => {
+        const btn = document.querySelector('button[aria-label="Analyze Now"]') as HTMLButtonElement;
+        btn?.click();
+      }, 100);
+      // Clear state so it doesn't re-trigger on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const handleAnalyze = async () => {
     if (!input.trim()) return;
@@ -24,6 +49,8 @@ const Index = () => {
       const res = await analyzeInput(input, memory, useMemoryToggle);
       setResult(res);
       ingestResult(res);
+      saveToHistory(res, input.slice(0, 60) + (input.length > 60 ? "..." : ""));
+      toast.success("Analysis complete");
     } catch (e) {
       toast.error("Something went wrong. Try again.");
     } finally {
@@ -36,12 +63,10 @@ const Index = () => {
     const buckets = { high: [] as Priority[], medium: [] as Priority[], low: [] as Priority[] };
     if (!result) return buckets;
 
-    // Top priorities are richly typed already
     for (const p of result.topPriorities) {
       const key = p.impact.toLowerCase() as "high" | "medium" | "low";
       buckets[key].push(p);
     }
-    // Secondary → medium with sensible defaults
     for (const s of result.secondary) {
       buckets.medium.push({
         task: s,
@@ -52,7 +77,6 @@ const Index = () => {
         memoryInfluence: "",
       });
     }
-    // Ignored → low
     for (const s of result.ignore) {
       buckets.low.push({
         task: s,

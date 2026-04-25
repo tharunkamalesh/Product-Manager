@@ -1,9 +1,27 @@
 import { useState } from "react";
-import { Calendar, FileText, ListPlus, Send, Download, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { Calendar, FileText, ListPlus, Send, Download, CheckCircle2, AlertCircle, Clock, TrendingUp, MoreHorizontal } from "lucide-react";
 import type { AnalysisResult, Memory } from "@/types/copilot";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+const TREND_DATA = [
+  { day: 'Mon', bugs: 12, priority: 8 },
+  { day: 'Tue', bugs: 19, priority: 14 },
+  { day: 'Wed', bugs: 15, priority: 10 },
+  { day: 'Thu', bugs: 22, priority: 18 },
+  { day: 'Fri', bugs: 18, priority: 12 },
+  { day: 'Sat', bugs: 10, priority: 6 },
+  { day: 'Sun', bugs: 8, priority: 4 },
+];
 
 interface RightRailProps {
   result: AnalysisResult | null;
@@ -125,27 +143,99 @@ export const RightRail = ({ result, memory, useMemory, onToggleUseMemory, onSetG
   return (
     <aside className="space-y-4">
       {/* Today's Summary */}
-      <div className="rounded-xl border border-border bg-card shadow-card p-4">
-        <header className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold">Today's Summary</h3>
-          <Calendar className="h-4 w-4 text-muted-foreground" />
+      <div className="rounded-xl border border-border bg-card shadow-card p-3">
+        <header className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Today's Summary</h3>
+          <Calendar className="h-3.5 w-3.5 text-muted-foreground/50" />
         </header>
-        <div className="grid grid-cols-2 gap-2">
-          <SummaryStat label="Total Items" value={total} icon={<FileText className="h-3.5 w-3.5" />} tone="primary" />
-          <SummaryStat label="High Priority" value={high} icon={<AlertCircle className="h-3.5 w-3.5" />} tone="high" />
-          <SummaryStat label="Medium Priority" value={result?.secondary.length ?? 0} icon={<Clock className="h-3.5 w-3.5" />} tone="medium" />
-          <SummaryStat label="Low Priority" value={low} icon={<CheckCircle2 className="h-3.5 w-3.5" />} tone="low" />
+        <div className="grid grid-cols-2 gap-1.5">
+          <CompactStat label="Total" value={total} tone="primary" />
+          <CompactStat label="High" value={high} tone="high" />
+          <CompactStat label="Medium" value={result?.secondary.length ?? 0} tone="medium" />
+          <CompactStat label="Low" value={low} tone="low" />
+        </div>
+      </div>
+
+      {/* Trend Insights Chart */}
+      <div className="rounded-xl border border-border bg-card shadow-card p-4">
+        <header className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold">Trend Insights</h3>
+          <TrendingUp className="h-4 w-4 text-primary" />
+        </header>
+        <div className="h-40 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={TREND_DATA}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+              <XAxis 
+                dataKey="day" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} 
+                dy={10}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--card))', 
+                  borderColor: 'hsl(var(--border))',
+                  borderRadius: '8px',
+                  fontSize: '11px'
+                }} 
+              />
+              <Line 
+                type="monotone" 
+                dataKey="bugs" 
+                stroke="hsl(var(--primary))" 
+                strokeWidth={2} 
+                dot={false} 
+                activeDot={{ r: 4 }} 
+              />
+              <Line 
+                type="monotone" 
+                dataKey="priority" 
+                stroke="hsl(var(--priority-medium))" 
+                strokeWidth={2} 
+                dot={false} 
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="flex items-center justify-center gap-4 mt-2">
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            Bugs
+          </div>
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-priority-medium" />
+            Priorities
+          </div>
         </div>
       </div>
 
       {/* Quick Actions */}
       <div className="rounded-xl border border-border bg-card shadow-card p-4">
-        <h3 className="text-sm font-semibold mb-3">Quick Actions</h3>
+        <header className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">Quick Actions</h3>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="h-8 w-8 rounded-md hover:bg-muted flex items-center justify-center transition-smooth">
+                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={handleAddCalendar}>
+                <Calendar className="h-4 w-4 mr-2 text-primary" />
+                Add to Calendar
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleExport}>
+                <Download className="h-4 w-4 mr-2 text-muted-foreground" />
+                Export Report
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </header>
         <div className="space-y-1">
           <QuickAction onClick={handleCreateJira} icon={<ListPlus className="h-4 w-4 text-info" />} label="Create Jira Task" />
           <QuickAction onClick={handleSendSlack} icon={<Send className="h-4 w-4 text-[#611f69]" />} label="Send to Slack" />
-          <QuickAction onClick={handleAddCalendar} icon={<Calendar className="h-4 w-4 text-primary" />} label="Add to Calendar" />
-          <QuickAction onClick={handleExport} icon={<Download className="h-4 w-4 text-muted-foreground" />} label="Export Report" />
         </div>
       </div>
 
@@ -222,20 +312,17 @@ export const RightRail = ({ result, memory, useMemory, onToggleUseMemory, onSetG
   );
 };
 
-const SummaryStat = ({ label, value, icon, tone }: { label: string; value: number; icon: React.ReactNode; tone: "primary" | "high" | "medium" | "low" }) => {
+const CompactStat = ({ label, value, tone }: { label: string; value: number; tone: "primary" | "high" | "medium" | "low" }) => {
   const map = {
-    primary: "bg-accent text-accent-foreground",
-    high: "bg-priority-high-soft text-priority-high",
-    medium: "bg-priority-medium-soft text-priority-medium",
-    low: "bg-priority-low-soft text-priority-low",
+    primary: "border-primary/20 bg-primary/5 text-primary",
+    high: "border-priority-high/20 bg-priority-high/5 text-priority-high",
+    medium: "border-priority-medium/20 bg-priority-medium/5 text-priority-medium",
+    low: "border-priority-low/20 bg-priority-low/5 text-priority-low",
   };
   return (
-    <div className="rounded-lg border border-border bg-card p-2.5 flex items-center gap-2.5">
-      <div className={`h-8 w-8 rounded-md flex items-center justify-center ${map[tone]}`}>{icon}</div>
-      <div className="leading-tight">
-        <p className="text-[10px] text-muted-foreground">{label}</p>
-        <p className="text-base font-bold tabular-nums">{value}</p>
-      </div>
+    <div className={cn("rounded-lg border p-2 flex items-center justify-between", map[tone])}>
+      <p className="text-[10px] font-medium uppercase tracking-tight opacity-70">{label}</p>
+      <p className="text-sm font-bold tabular-nums">{value}</p>
     </div>
   );
 };
