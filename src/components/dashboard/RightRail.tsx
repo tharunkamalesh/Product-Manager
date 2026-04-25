@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, FileText, ListPlus, Send, Download, CheckCircle2, AlertCircle, Clock, TrendingUp, MoreHorizontal } from "lucide-react";
+import { Calendar, FileText, ListPlus, Send, Download, CheckCircle2, AlertCircle, Clock, MoreHorizontal } from "lucide-react";
 import type { AnalysisResult, Memory } from "@/types/copilot";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -11,17 +11,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-const TREND_DATA = [
-  { day: 'Mon', bugs: 12, priority: 8 },
-  { day: 'Tue', bugs: 19, priority: 14 },
-  { day: 'Wed', bugs: 15, priority: 10 },
-  { day: 'Thu', bugs: 22, priority: 18 },
-  { day: 'Fri', bugs: 18, priority: 12 },
-  { day: 'Sat', bugs: 10, priority: 6 },
-  { day: 'Sun', bugs: 8, priority: 4 },
-];
 
 interface RightRailProps {
   result: AnalysisResult | null;
@@ -153,61 +142,6 @@ export const RightRail = ({ result, memory, useMemory, onToggleUseMemory, onSetG
           <CompactStat label="High" value={high} tone="high" />
           <CompactStat label="Medium" value={result?.secondary.length ?? 0} tone="medium" />
           <CompactStat label="Low" value={low} tone="low" />
-        </div>
-      </div>
-
-      {/* Trend Insights Chart */}
-      <div className="rounded-xl border border-border bg-card shadow-card p-4">
-        <header className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold">Trend Insights</h3>
-          <TrendingUp className="h-4 w-4 text-primary" />
-        </header>
-        <div className="h-40 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={TREND_DATA}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey="day" 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} 
-                dy={10}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--card))', 
-                  borderColor: 'hsl(var(--border))',
-                  borderRadius: '8px',
-                  fontSize: '11px'
-                }} 
-              />
-              <Line 
-                type="monotone" 
-                dataKey="bugs" 
-                stroke="hsl(var(--primary))" 
-                strokeWidth={2} 
-                dot={false} 
-                activeDot={{ r: 4 }} 
-              />
-              <Line 
-                type="monotone" 
-                dataKey="priority" 
-                stroke="hsl(var(--priority-medium))" 
-                strokeWidth={2} 
-                dot={false} 
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="flex items-center justify-center gap-4 mt-2">
-          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            Bugs
-          </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-            <span className="h-1.5 w-1.5 rounded-full bg-priority-medium" />
-            Priorities
-          </div>
         </div>
       </div>
 

@@ -10,7 +10,6 @@ import ActionPlan from "./pages/ActionPlan.tsx";
 import Calendar from "./pages/Calendar.tsx";
 import Integrations from "./pages/Integrations.tsx";
 import History from "./pages/History.tsx";
-import Insights from "./pages/Insights.tsx";
 import Settings from "./pages/Settings.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -33,7 +32,6 @@ const App = () => (
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/history" element={<History />} />
-            <Route path="/insights" element={<Insights />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
