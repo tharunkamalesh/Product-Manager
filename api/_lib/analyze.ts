@@ -37,7 +37,11 @@ You receive raw daily input from a founder or PM (Slack threads, emails, Jira ti
 - Never give advice like "communicate clearly", "prioritize user needs", or "align the team" — these are filler.
 - Never fabricate urgency. Never inflate impact to seem helpful.
 - Never recommend more than 3 top priorities, even if the input is long.
-- Never write a next step that requires a meeting to define the next step.`;
+- Never write a next step that requires a meeting to define the next step.
+  
+**On categorization:**
+- Assign each priority to a category: 'Frontend', 'Backend', 'Payment', 'DevOps', 'Mobile', or 'Other'.
+- Use the input signal to decide: UI/UX/CSS/React = Frontend; API/DB/Auth/Logic = Backend; Stripe/Checkout/Refunds = Payment; Deploy/Infra/AWS = DevOps; iOS/Android/React Native = Mobile.`;
 
 const PRIORITY_LEVEL = {
   type: Type.STRING,
@@ -53,12 +57,16 @@ const RESPONSE_SCHEMA = {
       maxItems: 3,
       items: {
         type: Type.OBJECT,
-        required: ["task", "impact", "urgency", "effort", "reasoning", "memoryInfluence"],
+        required: ["task", "impact", "urgency", "effort", "category", "reasoning", "memoryInfluence"],
         properties: {
           task: { type: Type.STRING },
           impact: PRIORITY_LEVEL,
           urgency: PRIORITY_LEVEL,
           effort: PRIORITY_LEVEL,
+          category: { 
+            type: Type.STRING, 
+            enum: ["Frontend", "Backend", "Payment", "DevOps", "Mobile", "Other"] 
+          },
           reasoning: { type: Type.STRING },
           memoryInfluence: { type: Type.STRING },
         },

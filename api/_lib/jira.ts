@@ -2,12 +2,13 @@ export interface JiraTaskRequest {
   task: string;
   priority: string;
   description: string;
+  category: string;
   projectKey?: string;
   dueDate?: string;
 }
 
 export async function createJiraIssue(body: JiraTaskRequest, env: Record<string, string>) {
-  const { task, priority, description, projectKey, dueDate } = body;
+  const { task, priority, description, category, projectKey, dueDate } = body;
 
   let domain = env.JIRA_DOMAIN || "";
   if (domain.includes(".atlassian.net")) {
@@ -21,6 +22,17 @@ export async function createJiraIssue(body: JiraTaskRequest, env: Record<string,
   if (!domain || !email || !token) {
     throw new Error("Jira credentials missing (JIRA_DOMAIN, JIRA_EMAIL, JIRA_API_TOKEN)");
   }
+
+  // Developer Mapping (AccountId mapping)
+  const assigneeMap: Record<string, string | undefined> = {
+    Frontend: env.JIRA_ASSIGNEE_FRONTEND,
+    Backend: env.JIRA_ASSIGNEE_BACKEND,
+    Payment: env.JIRA_ASSIGNEE_PAYMENT,
+    DevOps: env.JIRA_ASSIGNEE_DEVOPS,
+    Mobile: env.JIRA_ASSIGNEE_MOBILE,
+  };
+
+  const accountId = assigneeMap[category];
 
   const jiraPriority = priority === "High" ? "High" : priority === "Medium" ? "Medium" : "Low";
   
@@ -49,6 +61,7 @@ export async function createJiraIssue(body: JiraTaskRequest, env: Record<string,
       issuetype: { name: "Task" },
       priority: { name: jiraPriority },
       ...(dueDate && { duedate: dueDate }),
+      ...(accountId && { assignee: { id: accountId } }),
     }
   };
 

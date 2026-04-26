@@ -2,11 +2,14 @@ export type Impact = "High" | "Medium" | "Low";
 export type Urgency = "High" | "Medium" | "Low";
 export type Effort = "High" | "Medium" | "Low";
 
+export type Category = "Frontend" | "Backend" | "Payment" | "DevOps" | "Mobile" | "Other";
+
 export interface Priority {
   task: string;
   impact: Impact;
   urgency: Urgency;
   effort: Effort;
+  category: Category;
   reasoning: string;
   memoryInfluence: string;
   assignee?: string;
