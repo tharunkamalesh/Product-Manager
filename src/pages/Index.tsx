@@ -73,6 +73,7 @@ const Index = () => {
         effort: "Medium",
         reasoning: "Secondary task — handle after top priorities.",
         memoryInfluence: "",
+        category: "Other",
       });
     }
     for (const s of result.ignore) {
@@ -83,6 +84,7 @@ const Index = () => {
         effort: "Low",
         reasoning: "Defer — low signal, low leverage.",
         memoryInfluence: "",
+        category: "Other",
       });
     }
     return buckets;

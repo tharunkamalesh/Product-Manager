@@ -8,19 +8,19 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Loader2 } from "lucide-react";
 
-import Index from "./pages/Index.tsx";
-import Inbox from "./pages/Inbox.tsx";
-import Priorities from "./pages/Priorities.tsx";
-import ActionPlan from "./pages/ActionPlan.tsx";
-import Calendar from "./pages/Calendar.tsx";
-import Integrations from "./pages/Integrations.tsx";
-import History from "./pages/History.tsx";
-import Settings from "./pages/Settings.tsx";
-import NotFound from "./pages/NotFound.tsx";
-import Insights from "./pages/Insights.tsx";
-import Login from "./pages/Login.tsx";
-import Signup from "./pages/Signup.tsx";
-import TeamSetup from "./pages/TeamSetup.tsx";
+import Index from "./pages/Index";
+import Inbox from "./pages/Inbox";
+import Priorities from "./pages/Priorities";
+import ActionPlan from "./pages/ActionPlan";
+import Calendar from "./pages/Calendar";
+import Integrations from "./pages/Integrations";
+import History from "./pages/History";
+import Settings from "./pages/Settings";
+import NotFound from "./pages/NotFound";
+import Insights from "./pages/Insights";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import TeamSetup from "./pages/TeamSetup";
 
 const queryClient = new QueryClient();
 

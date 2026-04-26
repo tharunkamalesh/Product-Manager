@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
 
 interface RightRailProps {
   result: AnalysisResult | null;
@@ -51,15 +53,16 @@ export const RightRail = ({ result, memory, useMemory, onToggleUseMemory, onSetG
     return false;
   };
 
+  const { user } = useAuth();
   const [mapping, setMapping] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchMapping = async () => {
-      if (!useAuth().user) return;
+      if (!user) return;
       try {
         const { db } = await import("@/lib/firebase");
         const { doc, getDoc } = await import("firebase/firestore");
-        const docRef = doc(db, "team_mapping", useAuth().user!.uid);
+        const docRef = doc(db, "team_mapping", user.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           setMapping(docSnap.data());
@@ -69,7 +72,7 @@ export const RightRail = ({ result, memory, useMemory, onToggleUseMemory, onSetG
       }
     };
     fetchMapping();
-  }, []);
+  }, [user]);
 
   const handleCreateJira = async () => {
     if (!requireResult("create Jira tasks")) return;

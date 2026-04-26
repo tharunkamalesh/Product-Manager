@@ -9,7 +9,7 @@ export interface Priority {
   impact: Impact;
   urgency: Urgency;
   effort: Effort;
-  category: Category;
+  category?: Category;
   reasoning: string;
   memoryInfluence: string;
   assignee?: string;
