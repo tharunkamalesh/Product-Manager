@@ -75,10 +75,17 @@ export const RightRail = ({ result, memory, useMemory, onToggleUseMemory, onSetG
         }),
       });
 
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        console.error("Failed to parse Jira response:", text);
+        throw new Error(`Invalid server response (Status ${response.status})`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.details || data.error || "Failed to create task");
+        throw new Error(data.details || data.error || data.message || `Error ${response.status}`);
       }
 
       toast.success("Jira Task Created Successfully", {
