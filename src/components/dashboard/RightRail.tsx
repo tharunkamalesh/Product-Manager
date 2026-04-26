@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Calendar, FileText, ListPlus, Download, CheckCircle2, AlertCircle, Clock, MoreHorizontal } from "lucide-react";
+import { downloadActionPlanICS } from "@/lib/calendar";
 import type { AnalysisResult, Memory } from "@/types/copilot";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -64,12 +65,16 @@ export const RightRail = ({ result, memory, useMemory, onToggleUseMemory, onSetG
 
   const handleAddCalendar = () => {
     if (!requireResult("add to calendar")) return;
-    if (!integrations["Google Calendar"]) {
-      toast.error("Google Calendar not connected", { description: "Connect Calendar from Integrations." });
-      return;
+    
+    try {
+      downloadActionPlanICS(result!.actionPlan);
+      toast.success("Calendar file (.ics) downloaded", {
+        description: "You can import this file into Google Calendar, Outlook, or Apple Calendar.",
+      });
+    } catch (error) {
+      console.error("Calendar export failed:", error);
+      toast.error("Failed to generate calendar file");
     }
-    const count = result!.actionPlan.length;
-    toast.success(`Added ${count} block${count === 1 ? "" : "s"} to calendar (demo)`);
   };
 
   const handleExport = () => {
