@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, ArrowUpRight, Flame, AlertCircle, CheckCircle2, User, Mail, Layers, Clock, AlertTriangle } from "lucide-react";
+import { Sparkles, ArrowUpRight, Flame, AlertCircle, CheckCircle2, Mail, Layers, Clock, AlertTriangle } from "lucide-react";
 import type { Priority } from "@/types/copilot";
 import { cn } from "@/lib/utils";
 
@@ -154,18 +154,17 @@ const PriorityCard = ({ item, bucket, expanded }: { item: Priority; bucket: Buck
       ? "bg-priority-medium/15 text-priority-medium"
       : "bg-priority-low/15 text-priority-low";
 
-  // Mock data for new fields if they don't exist
-  const assignee = item.assignee || (bucket === "high" ? "AV" : "JD");
-  const source = item.source || (bucket === "high" ? "Jira" : "Email");
-  const dueDate = item.dueDate || "Oct 28";
-  const isOverdue = bucket === "high";
+  const assignee = item.assignee ?? null;
+  const source = item.source ?? null;
+  const dueDate = item.dueDate ?? null;
+  const isOverdue = false;
 
   // Pull a short title from the first line / first 60 chars
-  const lines = item.task.split(/[\n.—-]/).map((s) => s.trim()).filter(Boolean);
+  const lines = (item.task || "").split(/[\n.—-]/).map((s) => s.trim()).filter(Boolean);
   const title = (lines[0] || item.task).slice(0, 60);
   const subtitle = lines.slice(1).join(" · ").slice(0, 80) || item.reasoning.slice(0, 80);
 
-  const SourceIcon = source === "Jira" ? Layers : Mail;
+  const SourceIcon = source === "Jira" ? Layers : source === "Email" ? Mail : Layers;
 
   return (
     <article className="rounded-lg bg-card border border-border p-3 shadow-soft hover:shadow-card transition-smooth relative group">
@@ -194,26 +193,32 @@ const PriorityCard = ({ item, bucket, expanded }: { item: Priority; bucket: Buck
         </p>
       )}
 
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex -space-x-1">
-            <div className="h-5 w-5 rounded-full bg-primary/20 border border-background flex items-center justify-center text-[10px] font-bold text-primary">
-              {assignee}
-            </div>
+      {(assignee || dueDate) && (
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2">
+            {assignee && (
+              <div className="flex -space-x-1">
+                <div className="h-5 w-5 rounded-full bg-primary/20 border border-background flex items-center justify-center text-[10px] font-bold text-primary">
+                  {assignee}
+                </div>
+              </div>
+            )}
+            {dueDate && (
+              <div className={cn(
+                "flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded",
+                isOverdue ? "bg-destructive/10 text-destructive font-medium" : "bg-muted text-muted-foreground"
+              )}>
+                <Clock className="h-2.5 w-2.5" />
+                {dueDate}
+                {isOverdue && <AlertTriangle className="h-2.5 w-2.5 ml-0.5" />}
+              </div>
+            )}
           </div>
-          <div className={cn(
-            "flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded",
-            isOverdue ? "bg-destructive/10 text-destructive font-medium" : "bg-muted text-muted-foreground"
-          )}>
-            <Clock className="h-2.5 w-2.5" />
-            {dueDate}
-            {isOverdue && <AlertTriangle className="h-2.5 w-2.5 ml-0.5" />}
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <span className="font-medium text-foreground/70 uppercase tracking-tight">{item.effort} Effort</span>
           </div>
         </div>
-        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-          <span className="font-medium text-foreground/70 uppercase tracking-tight">{item.effort} Effort</span>
-        </div>
-      </div>
+      )}
 
       <div className="flex items-center justify-between pt-2 border-t border-border/70">
         <div className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground">

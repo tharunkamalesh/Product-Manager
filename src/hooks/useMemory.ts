@@ -28,7 +28,7 @@ export function useMemory() {
           if (raw) setMemory({ ...defaultMemory, ...JSON.parse(raw) });
         }
       } catch {
-        // ignore
+        // fall back to defaults
       } finally {
         setHydrated(true);
       }
@@ -40,7 +40,7 @@ export function useMemory() {
     if (!hydrated) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(memory));
-      saveSettings(memory); // Sync to Firestore
+      saveSettings(memory);
     } catch {
       // ignore
     }
@@ -62,12 +62,7 @@ export function useMemory() {
       ].slice(0, 5);
       const newIgnored = [...result.ignore, ...m.ignoredTasks].slice(0, 10);
       const patterns = extractPatterns([...newPast, ...newIgnored]);
-      return {
-        ...m,
-        pastPriorities: newPast,
-        ignoredTasks: newIgnored,
-        patterns,
-      };
+      return { ...m, pastPriorities: newPast, ignoredTasks: newIgnored, patterns };
     });
   }, []);
 

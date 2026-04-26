@@ -27,29 +27,15 @@ const Index = () => {
     setResult(latestResult);
   }, [latestResult]);
 
-  // Handle analyze request from router state (from Inbox)
-  useEffect(() => {
-    const state = location.state as { analyze?: string };
-    if (state?.analyze) {
-      setInput(state.analyze);
-      // Short delay to ensure state is set before trigger
-      setTimeout(() => {
-        const btn = document.querySelector('button[aria-label="Analyze Now"]') as HTMLButtonElement;
-        btn?.click();
-      }, 100);
-      // Clear state so it doesn't re-trigger on refresh
-      window.history.replaceState({}, document.title);
-    }
-  }, [location]);
-
-  const handleAnalyze = async () => {
-    if (!input.trim()) return;
+  const handleAnalyze = async (overrideInput?: string) => {
+    const text = typeof overrideInput === "string" ? overrideInput : input;
+    if (!text.trim()) return;
     setLoading(true);
     try {
-      const res = await analyzeInput(input, memory, useMemoryToggle);
+      const res = await analyzeInput(text, memory, useMemoryToggle);
       setResult(res);
       ingestResult(res);
-      await saveToHistory(res, input);
+      await saveToHistory(res, text);
       toast.success("Analysis complete");
     } catch (e) {
       toast.error("Something went wrong. Try again.");
@@ -57,6 +43,18 @@ const Index = () => {
       setLoading(false);
     }
   };
+
+  // Handle analyze request from router state (from Inbox)
+  useEffect(() => {
+    const state = location.state as { analyze?: string };
+    if (state?.analyze) {
+      const text = state.analyze;
+      setInput(text);
+      window.history.replaceState({}, document.title);
+      handleAnalyze(text);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location]);
 
   // Bucket all items into High / Medium / Low for the 3-column board
   const { high, medium, low } = useMemo(() => {

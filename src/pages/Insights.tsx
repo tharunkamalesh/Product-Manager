@@ -28,7 +28,7 @@ const Insights = () => {
     const highImpactCount = history.reduce((acc, s) => 
       acc + s.result.topPriorities.filter(p => p.impact === "High").length, 0
     );
-    const leverage = highImpactCount > history.length ? "High" : "Moderate";
+    const leverage = highImpactCount > history.length * 0.5 ? "High" : "Moderate";
 
     // Extract Themes (from memory patterns - or here from topPriority text)
     const themes = history.slice(0, 5).map(s => ({
