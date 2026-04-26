@@ -1,5 +1,5 @@
 import { useLocation, Link, useNavigate } from "react-router-dom";
-import { Sparkles, LayoutDashboard, Inbox, Flame, ListChecks, Calendar, Plug, History, Settings, HelpCircle, LogOut } from "lucide-react";
+import { Sparkles, LayoutDashboard, Inbox, Flame, ListChecks, Calendar, Plug, History, Settings, HelpCircle, LogOut, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OnboardingGuide } from "./OnboardingGuide";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,7 @@ const NAV: NavItem[] = [
   { id: "action-plan", icon: ListChecks, label: "Action Plan", path: "/action-plan" },
   { id: "calendar", icon: Calendar, label: "Calendar", path: "/calendar" },
   { id: "integrations", icon: Plug, label: "Integrations", path: "/integrations" },
+  { id: "team-setup", icon: Users, label: "Team Setup", path: "/team-setup" },
   { id: "history", icon: History, label: "History", path: "/history" },
   { id: "guide", icon: HelpCircle, label: "Help & Guide", path: "#" },
   { id: "settings", icon: Settings, label: "Settings", path: "/settings" },

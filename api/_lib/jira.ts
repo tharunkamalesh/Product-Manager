@@ -3,12 +3,13 @@ export interface JiraTaskRequest {
   priority: string;
   description: string;
   category: string;
+  assigneeId?: string;
   projectKey?: string;
   dueDate?: string;
 }
 
 export async function createJiraIssue(body: JiraTaskRequest, env: Record<string, string>) {
-  const { task, priority, description, category, projectKey, dueDate } = body;
+  const { task, priority, description, category, assigneeId, projectKey, dueDate } = body;
 
   let domain = env.JIRA_DOMAIN || "";
   if (domain.includes(".atlassian.net")) {
@@ -32,7 +33,7 @@ export async function createJiraIssue(body: JiraTaskRequest, env: Record<string,
     Mobile: env.JIRA_ASSIGNEE_MOBILE,
   };
 
-  const accountId = assigneeMap[category];
+  const accountId = assigneeId || assigneeMap[category];
 
   const jiraPriority = priority === "High" ? "High" : priority === "Medium" ? "Medium" : "Low";
   
