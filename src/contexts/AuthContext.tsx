@@ -43,14 +43,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Fetch Firestore profile whenever user changes
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      if (firebaseUser) {
-        const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-        setProfile(snap.exists() ? (snap.data() as UserProfile) : null);
-      } else {
-        setProfile(null);
+      try {
+        setUser(firebaseUser);
+        if (firebaseUser) {
+          const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+          setProfile(snap.exists() ? (snap.data() as UserProfile) : null);
+        } else {
+          setProfile(null);
+        }
+      } catch (error) {
+        console.error("Auth initialization error:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
     return unsub;
   }, []);

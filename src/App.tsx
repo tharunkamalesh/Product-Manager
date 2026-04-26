@@ -23,20 +23,7 @@ import Signup from "./pages/Signup.tsx";
 
 const queryClient = new QueryClient();
 
-// Gatekeeper for the root route "/"
-const RootRedirect = () => {
-  const { user, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  return user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
-};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -51,8 +38,8 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
 
-              {/* Root redirect handling */}
-              <Route path="/" element={<RootRedirect />} />
+              {/* Root route redirects to dashboard (which is protected) */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
               {/* Protected routes */}
               <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
