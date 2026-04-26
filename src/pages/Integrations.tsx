@@ -1,11 +1,12 @@
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { TopBar } from "@/components/dashboard/TopBar";
 import { Plug, Layers, Calendar as CalendarIcon, ExternalLink } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const Integrations = () => {
   const APPS = [
-    { name: "Jira", status: "Coming Soon", icon: Layers, description: "Import bugs and sync action items with your Jira projects." },
-    { name: "Google Calendar", status: "Coming Soon", icon: CalendarIcon, description: "Automatically block time for high-impact priorities." },
+    { name: "Jira", status: "Active", icon: Layers, description: "Create real Jira tickets from your top priorities and sync progress." },
+    { name: "Google Calendar", status: "Connected", icon: CalendarIcon, description: "Export action plans as .ics files to block time in your calendar." },
   ];
 
   return (
@@ -36,8 +37,14 @@ const Integrations = () => {
                 <p className="text-xs text-muted-foreground leading-relaxed mb-4">
                   {app.description}
                 </p>
-                <div className="flex items-center text-[11px] font-medium text-muted-foreground/60 group-hover:text-primary transition-colors cursor-not-allowed">
-                  Configure Connection <ExternalLink className="h-3 w-3 ml-1.5" />
+                <div className={cn(
+                  "flex items-center text-[11px] font-medium transition-colors",
+                  app.status === "Active" || app.status === "Connected" 
+                    ? "text-primary cursor-pointer" 
+                    : "text-muted-foreground/60 cursor-not-allowed"
+                )}>
+                  {app.status === "Active" || app.status === "Connected" ? "Manage Connection" : "Configure Connection"} 
+                  <ExternalLink className="h-3 w-3 ml-1.5" />
                 </div>
               </div>
             ))}
