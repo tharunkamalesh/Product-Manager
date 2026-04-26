@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell, Search, ChevronDown, LogOut, User, Settings as SettingsIcon, Moon, Sun, Filter } from "lucide-react";
 import {
   DropdownMenu,
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useTheme } from "@/components/theme-provider";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NOTIFICATIONS = [
   { id: 1, title: "New bug imported from Jira", time: "3h ago", unread: true },
@@ -24,8 +26,25 @@ const NOTIFICATIONS = [
 
 export const TopBar = () => {
   const { theme, setTheme } = useTheme();
+  const { profile, logout } = useAuth();
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [unread, setUnread] = useState(NOTIFICATIONS.filter((n) => n.unread).length);
+
+  const handleLogout = async () => {
+    try {
+      const toastId = toast.loading("Signing out...");
+      await logout();
+      toast.dismiss(toastId);
+      navigate("/login", { replace: true });
+    } catch (error) {
+      toast.error("Failed to sign out. Please try again.");
+    }
+  };
+
+  const initials = profile?.name
+    ? profile.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : "?";
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -172,11 +191,11 @@ export const TopBar = () => {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg hover:bg-muted transition-smooth">
               <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-primary-foreground text-xs font-semibold">
-                AV
+                {initials}
               </div>
               <div className="text-left hidden sm:block">
-                <p className="text-xs font-semibold leading-tight">Aman Verma</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">Product Manager</p>
+                <p className="text-xs font-semibold leading-tight">{profile?.name || "User"}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">{profile?.companyName || ""}</p>
               </div>
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
@@ -193,7 +212,11 @@ export const TopBar = () => {
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => toast.success("Signed out (demo)")}>
+            <DropdownMenuItem
+              id="topbar-logout-btn"
+              onSelect={handleLogout}
+              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+            >
               <LogOut className="h-4 w-4 mr-2" />
               Sign out
             </DropdownMenuItem>

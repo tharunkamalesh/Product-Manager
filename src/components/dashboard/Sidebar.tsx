@@ -1,7 +1,9 @@
-import { useLocation, Link } from "react-router-dom";
-import { Sparkles, LayoutDashboard, Inbox, Flame, ListChecks, Calendar, Plug, History, Settings, HelpCircle } from "lucide-react";
+import { useLocation, Link, useNavigate } from "react-router-dom";
+import { Sparkles, LayoutDashboard, Inbox, Flame, ListChecks, Calendar, Plug, History, Settings, HelpCircle, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OnboardingGuide } from "./OnboardingGuide";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 type NavItem = {
   id: string;
@@ -12,7 +14,7 @@ type NavItem = {
 };
 
 const NAV: NavItem[] = [
-  { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { id: "inbox", icon: Inbox, label: "Inbox", path: "/inbox", badge: "12" },
   { id: "priorities", icon: Flame, label: "Priorities", path: "/priorities" },
   { id: "action-plan", icon: ListChecks, label: "Action Plan", path: "/action-plan" },
@@ -25,6 +27,23 @@ const NAV: NavItem[] = [
 
 export const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { profile, logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      const toastId = toast.loading("Signing out...");
+      await logout();
+      toast.dismiss(toastId);
+      navigate("/login", { replace: true });
+    } catch (error) {
+      toast.error("Failed to sign out. Please try again.");
+    }
+  };
+
+  const initials = profile?.name
+    ? profile.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : "?";
 
   return (
     <aside className="hidden lg:flex flex-col w-[230px] shrink-0 bg-sidebar border-r border-sidebar-border min-h-screen sticky top-0">
@@ -78,15 +97,35 @@ export const Sidebar = () => {
         })}
       </nav>
 
-      {/* Learn more trigger */}
-      <div className="m-3 p-4">
-        <OnboardingGuide>
+      {/* User + Logout */}
+      <div className="m-3 mt-auto">
+        {/* Onboarding */}
+        <div className="mb-2">
+          <OnboardingGuide>
+            <button className="w-full text-[11px] font-medium px-3 py-1.5 rounded-md bg-card border border-border hover:border-primary/40 transition-smooth">
+              Learn more →
+            </button>
+          </OnboardingGuide>
+        </div>
+
+        {/* User identity block */}
+        <div className="flex items-center gap-2.5 p-3 rounded-xl bg-sidebar-accent/50 border border-sidebar-border">
+          <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-[11px] font-bold text-white shrink-0">
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold truncate text-sidebar-foreground">{profile?.name || "User"}</p>
+            <p className="text-[10px] text-muted-foreground truncate">{profile?.companyName || ""}</p>
+          </div>
           <button
-            className="w-full text-[11px] font-medium px-3 py-1.5 rounded-md bg-card border border-border hover:border-primary/40 transition-smooth"
+            id="sidebar-logout-btn"
+            onClick={handleLogout}
+            title="Logout"
+            className="shrink-0 text-muted-foreground hover:text-destructive transition-smooth p-1 rounded-md hover:bg-destructive/10"
           >
-            Learn more →
+            <LogOut className="h-3.5 w-3.5" />
           </button>
-        </OnboardingGuide>
+        </div>
       </div>
     </aside>
   );
