@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AnalysisResult, Memory } from "@/types/copilot";
 import { extractPatterns } from "@/lib/analyzer";
+import { fetchSettings, saveSettings } from "@/lib/db";
 
 const STORAGE_KEY = "pm-daily-copilot:memory:v1";
 
@@ -9,6 +10,7 @@ const defaultMemory: Memory = {
   pastPriorities: [],
   patterns: [],
   ignoredTasks: [],
+  useMemoryToggle: true,
 };
 
 export function useMemory() {
@@ -16,19 +18,29 @@ export function useMemory() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setMemory({ ...defaultMemory, ...JSON.parse(raw) });
-    } catch {
-      // ignore
-    }
-    setHydrated(true);
+    const init = async () => {
+      try {
+        const firestoreSettings = await fetchSettings();
+        if (firestoreSettings) {
+          setMemory(firestoreSettings);
+        } else {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) setMemory({ ...defaultMemory, ...JSON.parse(raw) });
+        }
+      } catch {
+        // ignore
+      } finally {
+        setHydrated(true);
+      }
+    };
+    init();
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(memory));
+      saveSettings(memory); // Sync to Firestore
     } catch {
       // ignore
     }
@@ -36,6 +48,10 @@ export function useMemory() {
 
   const setGoal = useCallback((goal: string) => {
     setMemory((m) => ({ ...m, userProfile: { goal } }));
+  }, []);
+
+  const setUseMemoryToggle = useCallback((useMemoryToggle: boolean) => {
+    setMemory((m) => ({ ...m, useMemoryToggle }));
   }, []);
 
   const ingestResult = useCallback((result: AnalysisResult) => {
@@ -59,5 +75,5 @@ export function useMemory() {
     setMemory(defaultMemory);
   }, []);
 
-  return { memory, setGoal, ingestResult, clearMemory, hydrated };
+  return { memory, setGoal, setUseMemoryToggle, ingestResult, clearMemory, hydrated };
 }

@@ -1,25 +1,44 @@
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { TopBar } from "@/components/dashboard/TopBar";
-import { useMemory } from "@/hooks/useMemory";
+import { useCopilot } from "@/hooks/useCopilot";
 import { BarChart3, TrendingUp, Lightbulb } from "lucide-react";
+import { useMemo } from "react";
 
 const Insights = () => {
-  const { memory } = useMemory();
+  const { history } = useCopilot();
 
-  const MOCK_PATTERNS = [
-    { type: "Onboarding issues", count: 4, detail: "Recurring feedback on sign-up flow friction." },
-    { type: "Bug fixes", count: 3, detail: "Focus on stability after last week's release." },
-    { type: "Feature research", count: 2, detail: "Exploring new monetization strategies." },
-  ];
+  const insights = useMemo(() => {
+    if (history.length === 0) return {
+      focusScore: 0,
+      velocity: 0,
+      leverage: "None",
+      themes: []
+    };
 
-  // Use actual memory patterns if available, otherwise mock for demo
-  const displayPatterns = memory.patterns.length > 0 
-    ? memory.patterns.map((p, i) => ({ 
-        type: p.charAt(0).toUpperCase() + p.slice(1), 
-        count: Math.floor(Math.random() * 5) + 2,
-        detail: "Pattern detected in your recurring priorities."
-      }))
-    : MOCK_PATTERNS;
+    // Calculate Focus Score (% of High priority tasks)
+    const highPriorityCount = history.filter(s => 
+      s.result.topPriorities.some(p => p.impact === "High")
+    ).length;
+    const focusScore = Math.round((highPriorityCount / history.length) * 100);
+
+    // Calculate Velocity (count of analyses)
+    const velocity = history.length;
+
+    // Calculate Leverage (High impact vs Medium/Low)
+    const highImpactCount = history.reduce((acc, s) => 
+      acc + s.result.topPriorities.filter(p => p.impact === "High").length, 0
+    );
+    const leverage = highImpactCount > history.length ? "High" : "Moderate";
+
+    // Extract Themes (from memory patterns - or here from topPriority text)
+    const themes = history.slice(0, 5).map(s => ({
+      type: s.topPriority,
+      count: 1,
+      detail: "Detected in your recent priorities."
+    }));
+
+    return { focusScore, velocity, leverage, themes };
+  }, [history]);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -38,36 +57,37 @@ const Insights = () => {
             <div className="p-5 rounded-2xl bg-primary/5 border border-primary/10">
               <TrendingUp className="h-5 w-5 text-primary mb-3" />
               <h3 className="text-sm font-bold mb-1">Focus Score</h3>
-              <p className="text-2xl font-bold text-primary">82%</p>
-              <p className="text-[10px] text-muted-foreground mt-1">High alignment with core goals</p>
+              <p className="text-2xl font-bold text-primary">{insights.focusScore}%</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Alignment with High Priority</p>
             </div>
             <div className="p-5 rounded-2xl bg-priority-medium/5 border border-priority-medium/10">
               <BarChart3 className="h-5 w-5 text-priority-medium mb-3" />
-              <h3 className="text-sm font-bold mb-1">Velocity</h3>
-              <p className="text-2xl font-bold text-priority-medium">+14%</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Faster execution this week</p>
+              <h3 className="text-sm font-bold mb-1">Sessions</h3>
+              <p className="text-2xl font-bold text-priority-medium">{insights.velocity}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Total analyses performed</p>
             </div>
             <div className="p-5 rounded-2xl bg-priority-low/5 border border-priority-low/10">
               <Lightbulb className="h-5 w-5 text-priority-low mb-3" />
               <h3 className="text-sm font-bold mb-1">Leverage</h3>
-              <p className="text-2xl font-bold text-priority-low">High</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Prioritizing high-impact tasks</p>
+              <p className="text-2xl font-bold text-priority-low">{insights.leverage}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Impact potential of current work</p>
             </div>
           </div>
 
           <h2 className="text-lg font-bold mb-4">Recurring Themes</h2>
           <div className="space-y-3">
-            {displayPatterns.map((p, i) => (
-              <div key={i} className="p-4 rounded-xl border bg-card flex items-center justify-between group">
-                <div>
-                  <h4 className="text-sm font-bold">{p.type}</h4>
-                  <p className="text-xs text-muted-foreground mt-0.5">{p.detail}</p>
+            {insights.themes.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-10">No themes detected yet. Run more analyses!</p>
+            ) : (
+              insights.themes.map((p, i) => (
+                <div key={i} className="p-4 rounded-xl border bg-card flex items-center justify-between group">
+                  <div>
+                    <h4 className="text-sm font-bold">{p.type}</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">{p.detail}</p>
+                  </div>
                 </div>
-                <div className="h-8 px-3 rounded-lg bg-muted flex items-center justify-center text-xs font-bold tabular-nums">
-                  {p.count} times
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </main>
       </div>

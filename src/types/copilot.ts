@@ -49,5 +49,6 @@ export interface Memory {
   pastPriorities: string[];
   patterns: string[];
   ignoredTasks: string[];
+  useMemoryToggle?: boolean;
 }
 

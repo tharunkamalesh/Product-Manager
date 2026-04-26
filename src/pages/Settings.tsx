@@ -10,9 +10,8 @@ import { toast } from "sonner";
 import { useState } from "react";
 
 const Settings = () => {
-  const { memory, setGoal, clearMemory } = useMemory();
+  const { memory, setGoal, setUseMemoryToggle, clearMemory } = useMemory();
   const { clearHistory } = useCopilot();
-  const [useMemoryToggle, setUseMemoryToggle] = useState(true);
 
   const handleReset = () => {
     if (confirm("Reset everything? This will clear your goal, memory context, and analysis history.")) {
@@ -70,7 +69,7 @@ const Settings = () => {
                     Allow the AI to learn from your past priorities and patterns to give better suggestions over time.
                   </p>
                 </div>
-                <Switch checked={useMemoryToggle} onCheckedChange={setUseMemoryToggle} />
+                <Switch checked={memory.useMemoryToggle} onCheckedChange={setUseMemoryToggle} />
               </div>
             </div>
 

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import type { AnalysisResult, InboxItem, HistorySession, Priority } from "@/types/copilot";
+import type { AnalysisResult, InboxItem, HistorySession } from "@/types/copilot";
+import { fetchHistory, saveAnalysis } from "@/lib/db";
 
 const INBOX_KEY = "pm-daily-copilot:inbox:v1";
-const HISTORY_KEY = "pm-daily-copilot:history:v1";
 const LATEST_KEY = "pm-daily-copilot:latest:v1";
 
 export function useCopilot() {
@@ -10,28 +10,37 @@ export function useCopilot() {
   const [history, setHistory] = useState<HistorySession[]>([]);
   const [latestResult, setLatestResult] = useState<AnalysisResult | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    try {
-      const rawInbox = localStorage.getItem(INBOX_KEY);
-      const rawHistory = localStorage.getItem(HISTORY_KEY);
-      const rawLatest = localStorage.getItem(LATEST_KEY);
+    const init = async () => {
+      try {
+        const rawInbox = localStorage.getItem(INBOX_KEY);
+        const rawLatest = localStorage.getItem(LATEST_KEY);
 
-      if (rawInbox) setInbox(JSON.parse(rawInbox));
-      if (rawHistory) setHistory(JSON.parse(rawHistory));
-      if (rawLatest) setLatestResult(JSON.parse(rawLatest));
-    } catch (e) {
-      console.error("Failed to hydrate copilot state", e);
-    }
-    setHydrated(true);
+        if (rawInbox) setInbox(JSON.parse(rawInbox));
+        if (rawLatest) setLatestResult(JSON.parse(rawLatest));
+        
+        // Fetch history from Firestore
+        setLoading(true);
+        const firestoreHistory = await fetchHistory();
+        setHistory(firestoreHistory);
+      } catch (e) {
+        console.error("Failed to hydrate copilot state", e);
+      } finally {
+        setLoading(false);
+        setHydrated(true);
+      }
+    };
+
+    init();
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
     localStorage.setItem(INBOX_KEY, JSON.stringify(inbox));
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
     localStorage.setItem(LATEST_KEY, JSON.stringify(latestResult));
-  }, [inbox, history, latestResult, hydrated]);
+  }, [inbox, latestResult, hydrated]);
 
   const addToInbox = useCallback((text: string) => {
     const newItem: InboxItem = {
@@ -46,21 +55,41 @@ export function useCopilot() {
     setInbox((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
-  const saveToHistory = useCallback((result: AnalysisResult, inputSummary: string) => {
-    const session: HistorySession = {
-      id: result.id,
-      inputSummary,
-      topPriority: result.topPriorities[0]?.task || "No tasks",
-      result,
-      timestamp: result.timestamp,
-    };
-    setHistory((prev) => [session, ...prev].slice(0, 50));
-    setLatestResult(result);
+  const saveToHistory = useCallback(async (result: AnalysisResult, input: string) => {
+    try {
+      // Save to Firestore
+      const firestoreId = await saveAnalysis(input, result);
+      
+      const session: HistorySession = {
+        id: firestoreId || result.id,
+        inputSummary: input.slice(0, 60) + (input.length > 60 ? "..." : ""),
+        topPriority: result.topPriorities[0]?.task || "No tasks",
+        result: {
+          ...result,
+          id: firestoreId || result.id
+        },
+        timestamp: result.timestamp,
+      };
+      
+      setHistory((prev) => [session, ...prev].slice(0, 50));
+      setLatestResult(result);
+    } catch (error) {
+      console.error("Failed to save to history:", error);
+    }
   }, []);
 
   const clearHistory = useCallback(() => {
+    // Note: This only clears local state for now. 
+    // In a real app, we might want a "delete all" Firestore function.
     setHistory([]);
     setLatestResult(null);
+  }, []);
+
+  const refreshHistory = useCallback(async () => {
+    setLoading(true);
+    const firestoreHistory = await fetchHistory();
+    setHistory(firestoreHistory);
+    setLoading(false);
   }, []);
 
   return {
@@ -71,6 +100,8 @@ export function useCopilot() {
     removeFromInbox,
     saveToHistory,
     clearHistory,
+    refreshHistory,
     hydrated,
+    loading
   };
 }

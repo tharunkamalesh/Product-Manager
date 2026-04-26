@@ -14,13 +14,13 @@ import { toast } from "sonner";
 
 const Index = () => {
   const location = useLocation();
-  const { memory, setGoal, ingestResult, clearMemory } = useMemory();
+  const { memory, setGoal, setUseMemoryToggle, ingestResult, clearMemory } = useMemory();
   const { latestResult, saveToHistory } = useCopilot();
 
   const [input, setInput] = useState("");
   const [result, setResult] = useState<AnalysisResult | null>(latestResult);
   const [loading, setLoading] = useState(false);
-  const [useMemoryToggle, setUseMemoryToggle] = useState(true);
+  const useMemoryToggle = memory.useMemoryToggle ?? true;
 
   // Sync with latest result if it changes (e.g. from history clear)
   useEffect(() => {
@@ -49,7 +49,7 @@ const Index = () => {
       const res = await analyzeInput(input, memory, useMemoryToggle);
       setResult(res);
       ingestResult(res);
-      saveToHistory(res, input.slice(0, 60) + (input.length > 60 ? "..." : ""));
+      await saveToHistory(res, input);
       toast.success("Analysis complete");
     } catch (e) {
       toast.error("Something went wrong. Try again.");
