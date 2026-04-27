@@ -3,17 +3,21 @@ import {
   addDoc,
   query,
   orderBy,
+  where,
   getDocs,
   doc,
   setDoc,
+  updateDoc,
+  deleteDoc,
   getDoc,
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import type { AnalysisResult, HistorySession, Memory } from "@/types/copilot";
+import type { AnalysisResult, HistorySession, InboxItem, Memory } from "@/types/copilot";
 
 const ANALYSES_COLLECTION = "analyses";
+const INBOX_COLLECTION = "inbox";
 const SETTINGS_DOC_ID = "user_settings";
 
 export interface FirestoreAnalysis {
@@ -77,6 +81,60 @@ export const saveSettings = async (memory: Memory) => {
   } catch (error) {
     console.error("Error saving settings:", error);
   }
+};
+
+export const fetchInbox = async (userId: string): Promise<InboxItem[]> => {
+  try {
+    const q = query(collection(db, INBOX_COLLECTION), where("userId", "==", userId));
+    const snap = await getDocs(q);
+    const items = snap.docs.map((d) => {
+      const data = d.data();
+      const ts =
+        (data.createdAt as Timestamp)?.toDate().toISOString() ||
+        data.timestamp ||
+        new Date().toISOString();
+      const processedAt = (data.processedAt as Timestamp)?.toDate().toISOString();
+      return {
+        id: d.id,
+        text: data.text,
+        timestamp: ts,
+        status: (data.status as InboxItem["status"]) || "pending",
+        ...(processedAt && { processedAt }),
+      };
+    });
+    return items.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  } catch (error) {
+    console.error("Error fetching inbox:", error);
+    return [];
+  }
+};
+
+export const addInboxItem = async (userId: string, text: string): Promise<string> => {
+  const ref = await addDoc(collection(db, INBOX_COLLECTION), {
+    userId,
+    text,
+    status: "pending",
+    createdAt: serverTimestamp(),
+  });
+  return ref.id;
+};
+
+export const updateInboxItemText = async (id: string, text: string) => {
+  await updateDoc(doc(db, INBOX_COLLECTION, id), { text });
+};
+
+export const setInboxItemStatus = async (
+  id: string,
+  status: InboxItem["status"]
+) => {
+  await updateDoc(doc(db, INBOX_COLLECTION, id), {
+    status,
+    ...(status === "processed" ? { processedAt: serverTimestamp() } : {}),
+  });
+};
+
+export const deleteInboxItem = async (id: string) => {
+  await deleteDoc(doc(db, INBOX_COLLECTION, id));
 };
 
 export const fetchSettings = async (): Promise<Memory | null> => {

@@ -22,7 +22,7 @@ const Priorities = () => {
         <main className="px-5 py-5 max-w-4xl mx-auto">
           <header className="mb-8 flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">⚡ Priorities</h1>
+              <h1 className="text-[22px] font-semibold tracking-tight">Priorities</h1>
               <p className="text-muted-foreground mt-1 text-sm">
                 View the latest high-leverage decisions made by the AI.
               </p>
@@ -35,14 +35,14 @@ const Priorities = () => {
 
           <div className="space-y-6">
             {!latestResult || latestResult.topPriorities.length === 0 ? (
-              <div className="text-center py-20 border border-dashed rounded-2xl">
+              <div className="text-center py-20 border border-dashed rounded-md">
                 <Flame className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
                 <p className="text-muted-foreground">No active priorities found. Run an analysis on the dashboard first.</p>
                 <Button className="mt-4" onClick={() => navigate("/")}>Go to Dashboard</Button>
               </div>
             ) : (
               latestResult.topPriorities.map((p, i) => (
-                <div key={i} className="bg-card border rounded-2xl p-6 shadow-sm relative overflow-hidden group">
+                <div key={i} className="bg-card border rounded-md p-6 shadow-sm relative overflow-hidden group">
                   <div className="absolute top-0 left-0 w-1.5 h-full bg-primary/40" />
                   <div className="flex items-start justify-between gap-6">
                     <div className="flex-1">

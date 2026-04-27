@@ -11,18 +11,24 @@ export interface JiraTaskRequest {
 export async function createJiraIssue(body: JiraTaskRequest, env: Record<string, string>) {
   const { task, priority, description, category, assigneeId, projectKey, dueDate } = body;
 
-  let domain = env.JIRA_DOMAIN || "";
-  if (domain.includes(".atlassian.net")) {
-    domain = domain.replace(".atlassian.net", "").replace("https://", "").replace("http://", "");
-  }
-  
-  const email = env.JIRA_EMAIL;
-  const token = env.JIRA_API_TOKEN;
-  const defaultProject = env.JIRA_PROJECT_KEY || "KAN";
+  let domain = (env.JIRA_DOMAIN || "").trim();
+  domain = domain.replace(/^https?:\/\//, "").replace(/\.atlassian\.net\/?$/, "").replace(/\/$/, "");
+
+  const email = (env.JIRA_EMAIL || "").trim();
+  const token = (env.JIRA_API_TOKEN || "").trim();
+  const defaultProject = (env.JIRA_PROJECT_KEY || "KAN").trim();
 
   if (!domain || !email || !token) {
     throw new Error("Jira credentials missing (JIRA_DOMAIN, JIRA_EMAIL, JIRA_API_TOKEN)");
   }
+
+  // Treat obvious placeholders ("frontend-account-id", "TODO", empty) as unset.
+  // Real Jira accountIds are opaque tokens like "557058:abc..." or 24-char hex.
+  const isValidAccountId = (v: unknown): v is string =>
+    typeof v === "string" &&
+    v.length > 0 &&
+    !/account-id$/i.test(v) &&
+    !/^(todo|placeholder|unassigned|none)$/i.test(v);
 
   // Developer Mapping (AccountId mapping)
   const assigneeMap: Record<string, string | undefined> = {
@@ -33,7 +39,8 @@ export async function createJiraIssue(body: JiraTaskRequest, env: Record<string,
     Mobile: env.JIRA_ASSIGNEE_MOBILE,
   };
 
-  const accountId = assigneeId || assigneeMap[category];
+  const candidateAccountId = assigneeId || assigneeMap[category];
+  const accountId = isValidAccountId(candidateAccountId) ? candidateAccountId : undefined;
 
   const jiraPriority = priority === "High" ? "High" : priority === "Medium" ? "Medium" : "Low";
   
@@ -94,11 +101,30 @@ export async function createJiraIssue(body: JiraTaskRequest, env: Record<string,
   }
 
   if (!response.ok) {
-    const errorMsg = data.errorMessages?.[0] || 
-                     (data.errors ? Object.values(data.errors).join(", ") : null) || 
-                     responseText || 
-                     "Unknown Jira error";
-    throw new Error(errorMsg);
+    if (response.status === 401) {
+      throw new Error(
+        "Jira authentication failed (401). Check JIRA_EMAIL and JIRA_API_TOKEN — the token may be truncated or expired."
+      );
+    }
+    if (response.status === 403) {
+      throw new Error(
+        "Jira access forbidden (403). The account does not have permission to create issues in this project."
+      );
+    }
+    if (response.status === 404) {
+      throw new Error(
+        `Jira project or endpoint not found (404). Check JIRA_DOMAIN ("${domain}") and JIRA_PROJECT_KEY ("${(projectKey || defaultProject).toUpperCase()}").`
+      );
+    }
+    const fieldErrors = data.errors
+      ? Object.entries(data.errors).map(([k, v]) => `${k}: ${v}`).join("; ")
+      : null;
+    const errorMsg =
+      data.errorMessages?.[0] ||
+      fieldErrors ||
+      responseText ||
+      "Unknown Jira error";
+    throw new Error(`Jira ${response.status}: ${errorMsg}`);
   }
 
   return {

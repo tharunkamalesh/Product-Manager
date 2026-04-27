@@ -101,7 +101,7 @@ const TeamSetup = () => {
         <TopBar />
         <main className="px-5 py-5 max-w-2xl mx-auto">
           <header className="mb-8">
-            <h1 className="text-2xl font-bold tracking-tight">👥 Team Setup</h1>
+            <h1 className="text-[22px] font-semibold tracking-tight">Team setup</h1>
             <p className="text-muted-foreground mt-1 text-sm">
               Map work categories to Jira developers for automatic task assignment.
             </p>
@@ -113,7 +113,7 @@ const TeamSetup = () => {
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="bg-card/50 border rounded-2xl p-6 space-y-6 shadow-sm">
+              <div className="bg-card/50 border rounded-md p-6 space-y-6 shadow-sm">
                 {CATEGORIES.map((cat) => (
                   <div key={cat.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-0.5">
@@ -149,7 +149,7 @@ const TeamSetup = () => {
                 <Button 
                   onClick={handleSave} 
                   disabled={saving}
-                  className="px-8 shadow-elegant"
+                  className="px-6"
                 >
                   {saving ? (
                     <>
@@ -165,7 +165,7 @@ const TeamSetup = () => {
                 </Button>
               </div>
 
-              <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 flex items-start gap-3">
+              <div className="bg-primary/5 border border-primary/10 rounded p-4 flex items-start gap-3">
                 <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
                 <div className="text-[11px] leading-relaxed text-primary/80">
                   <span className="font-bold">Pro Tip:</span> Automatic assignment works by analyzing the task type during the analysis phase. If you change these mappings, they will apply to all future "Create Jira Task" actions.

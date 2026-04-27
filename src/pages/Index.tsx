@@ -15,7 +15,7 @@ import { toast } from "sonner";
 const Index = () => {
   const location = useLocation();
   const { memory, setGoal, setUseMemoryToggle, ingestResult, clearMemory } = useMemory();
-  const { latestResult, saveToHistory } = useCopilot();
+  const { latestResult, saveToHistory, setInboxStatus } = useCopilot();
 
   const [input, setInput] = useState("");
   const [result, setResult] = useState<AnalysisResult | null>(latestResult);
@@ -27,7 +27,7 @@ const Index = () => {
     setResult(latestResult);
   }, [latestResult]);
 
-  const handleAnalyze = async (overrideInput?: string) => {
+  const handleAnalyze = async (overrideInput?: string, inboxIds?: string[]) => {
     const text = typeof overrideInput === "string" ? overrideInput : input;
     if (!text.trim()) return;
     setLoading(true);
@@ -36,6 +36,9 @@ const Index = () => {
       setResult(res);
       ingestResult(res);
       await saveToHistory(res, text);
+      if (inboxIds && inboxIds.length) {
+        await Promise.all(inboxIds.map((id) => setInboxStatus(id, "processed").catch(() => {})));
+      }
       toast.success("Analysis complete");
     } catch (e) {
       toast.error("Something went wrong. Try again.");
@@ -46,12 +49,13 @@ const Index = () => {
 
   // Handle analyze request from router state (from Inbox)
   useEffect(() => {
-    const state = location.state as { analyze?: string };
+    const state = location.state as { analyze?: string; inboxIds?: string[] };
     if (state?.analyze) {
       const text = state.analyze;
+      const inboxIds = state.inboxIds;
       setInput(text);
       window.history.replaceState({}, document.title);
-      handleAnalyze(text);
+      handleAnalyze(text, inboxIds);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);

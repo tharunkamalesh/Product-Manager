@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Bell, Search, ChevronDown, LogOut, User, Settings as SettingsIcon, Moon, Sun, Filter } from "lucide-react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import {
+  Bell,
+  Search,
+  ChevronDown,
+  LogOut,
+  User,
+  Settings as SettingsIcon,
+  Moon,
+  Sun,
+  ChevronRight,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,10 +34,25 @@ const NOTIFICATIONS = [
   { id: 3, title: "Server issue resolved", time: "5h ago", unread: true },
 ];
 
+const PATH_LABELS: Record<string, string> = {
+  "/": "Dashboard",
+  "/dashboard": "Dashboard",
+  "/inbox": "Inbox",
+  "/priorities": "Priorities",
+  "/action-plan": "Action plan",
+  "/calendar": "Calendar",
+  "/integrations": "Integrations",
+  "/team-setup": "Team setup",
+  "/history": "History",
+  "/settings": "Settings",
+  "/insights": "Insights",
+};
+
 export const TopBar = () => {
   const { theme, setTheme } = useTheme();
   const { profile, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [query, setQuery] = useState("");
   const [unread, setUnread] = useState(NOTIFICATIONS.filter((n) => n.unread).length);
 
@@ -62,7 +87,7 @@ export const TopBar = () => {
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== "Enter" || !query.trim()) return;
     toast.message(`Searching for "${query.trim()}"`, {
-      description: "Search across tasks, priorities and history is coming soon.",
+      description: "Global search is coming soon.",
     });
   };
 
@@ -71,102 +96,75 @@ export const TopBar = () => {
     toast.success("Notifications marked as read");
   };
 
+  const currentLabel = PATH_LABELS[location.pathname] || "";
+
   return (
-    <header className="h-16 border-b border-border bg-card/60 backdrop-blur-xl sticky top-0 z-30 flex items-center px-5 gap-4">
+    <header className="h-14 border-b border-border bg-card sticky top-0 z-30 flex items-center px-5 gap-4">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-1.5 text-[12px] min-w-0">
+        <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors truncate">
+          Projects
+        </Link>
+        <ChevronRight className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+        <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors truncate">
+          Founder's Compass
+        </Link>
+        {currentLabel && (
+          <>
+            <ChevronRight className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+            <span className="font-medium text-foreground truncate">{currentLabel}</span>
+          </>
+        )}
+      </nav>
+
       {/* Search */}
-      <div className="flex-1 max-w-xl mx-auto">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="ml-auto flex items-center gap-1">
+        <div className="relative w-72 hidden md:block">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <input
             id="global-search"
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleSearch}
-            placeholder="Search anything..."
-            className="w-full h-9 pl-9 pr-16 rounded-lg bg-muted/60 border border-transparent focus:border-border focus:bg-card text-sm placeholder:text-muted-foreground/70 outline-none transition-smooth"
+            placeholder="Search"
+            className="w-full h-8 pl-8 pr-12 rounded border border-border bg-card focus:bg-card focus:border-primary/60 text-[13px] placeholder:text-muted-foreground/70 outline-none transition-colors"
           />
-          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-muted-foreground bg-card border border-border px-1.5 py-0.5 rounded">
+          <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-muted-foreground bg-muted border border-border px-1 py-0.5 rounded-sm">
             ⌘K
           </kbd>
         </div>
-      </div>
 
-      {/* Right cluster */}
-      <div className="flex items-center gap-3 ml-auto">
-        {/* Theme Toggle */}
+        {/* Theme toggle */}
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="h-9 w-9 rounded-lg hover:bg-muted flex items-center justify-center transition-smooth"
+          className="h-8 w-8 rounded hover:bg-muted flex items-center justify-center transition-colors"
           aria-label="Toggle theme"
         >
           {theme === "dark" ? (
-            <Sun className="h-4 w-4 text-foreground/70" />
+            <Sun className="h-4 w-4 text-muted-foreground" />
           ) : (
-            <Moon className="h-4 w-4 text-foreground/70" />
+            <Moon className="h-4 w-4 text-muted-foreground" />
           )}
         </button>
-
-        {/* Filters */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              className="h-9 w-9 rounded-lg hover:bg-muted flex items-center justify-center transition-smooth"
-              aria-label="Filters"
-            >
-              <Filter className="h-4 w-4 text-foreground/70" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-64">
-            <div className="p-3 space-y-4">
-              <p className="text-sm font-semibold">Advanced Filters</p>
-              <div className="space-y-2">
-                <label className="text-xs font-medium">Priority</label>
-                <select className="w-full h-8 text-xs bg-muted border border-border rounded px-2 outline-none">
-                  <option>All Priorities</option>
-                  <option>High</option>
-                  <option>Medium</option>
-                  <option>Low</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-medium">Status</label>
-                <select className="w-full h-8 text-xs bg-muted border border-border rounded px-2 outline-none">
-                  <option>All Statuses</option>
-                  <option>Open</option>
-                  <option>In Progress</option>
-                  <option>Closed</option>
-                </select>
-              </div>
-              <button
-                className="w-full py-1.5 bg-primary text-primary-foreground text-xs font-medium rounded hover:opacity-90"
-                onClick={() => toast.success("Filters applied")}
-              >
-                Apply Filters
-              </button>
-            </div>
-          </PopoverContent>
-        </Popover>
 
         {/* Notifications */}
         <Popover>
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="relative h-9 w-9 rounded-lg hover:bg-muted flex items-center justify-center transition-smooth"
+              className="relative h-8 w-8 rounded hover:bg-muted flex items-center justify-center transition-colors"
               aria-label="Notifications"
             >
-              <Bell className="h-4 w-4 text-foreground/70" />
+              <Bell className="h-4 w-4 text-muted-foreground" />
               {unread > 0 && (
-                <span className="absolute top-1.5 right-1.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center">
-                  {unread}
-                </span>
+                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive" />
               )}
             </button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-80 p-0">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <p className="text-sm font-semibold">Notifications</p>
+            <div className="flex items-center justify-between px-3 py-2.5 border-b border-border">
+              <p className="text-[13px] font-semibold">Notifications</p>
               <button
                 onClick={handleMarkAllRead}
                 disabled={unread === 0}
@@ -177,8 +175,8 @@ export const TopBar = () => {
             </div>
             <ul className="max-h-72 overflow-auto divide-y divide-border">
               {NOTIFICATIONS.map((n) => (
-                <li key={n.id} className="px-4 py-3 hover:bg-muted/60 transition-smooth">
-                  <p className="text-xs font-medium text-foreground">{n.title}</p>
+                <li key={n.id} className="px-3 py-2.5 hover:bg-muted/60 transition-colors">
+                  <p className="text-[12px] font-medium text-foreground">{n.title}</p>
                   <p className="text-[10.5px] text-muted-foreground mt-0.5">{n.time}</p>
                 </li>
               ))}
@@ -186,29 +184,30 @@ export const TopBar = () => {
           </PopoverContent>
         </Popover>
 
-        {/* Profile dropdown */}
+        {/* Profile */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg hover:bg-muted transition-smooth">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-primary-foreground text-xs font-semibold">
+            <button className="flex items-center gap-2 pl-1 pr-2 h-8 rounded hover:bg-muted transition-colors ml-1">
+              <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-semibold">
                 {initials}
               </div>
-              <div className="text-left hidden sm:block">
-                <p className="text-xs font-semibold leading-tight">{profile?.name || "User"}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">{profile?.companyName || ""}</p>
-              </div>
-              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+              <ChevronDown className="h-3 w-3 text-muted-foreground" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-[11px] font-normal text-muted-foreground">
+              Signed in as
+              <p className="text-[12px] font-semibold text-foreground truncate">
+                {profile?.email || profile?.name}
+              </p>
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => toast.message("Profile", { description: "Profile page coming soon." })}>
-              <User className="h-4 w-4 mr-2" />
+            <DropdownMenuItem onSelect={() => navigate("/settings")}>
+              <User className="h-3.5 w-3.5 mr-2" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => toast.message("Settings", { description: "Settings panel coming soon." })}>
-              <SettingsIcon className="h-4 w-4 mr-2" />
+            <DropdownMenuItem onSelect={() => navigate("/settings")}>
+              <SettingsIcon className="h-3.5 w-3.5 mr-2" />
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -217,7 +216,7 @@ export const TopBar = () => {
               onSelect={handleLogout}
               className="text-destructive focus:text-destructive focus:bg-destructive/10"
             >
-              <LogOut className="h-4 w-4 mr-2" />
+              <LogOut className="h-3.5 w-3.5 mr-2" />
               Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>

@@ -33,10 +33,14 @@ export interface AnalysisResult {
   actionPlan: ActionStep[];
 }
 
+export type InboxStatus = "pending" | "processed";
+
 export interface InboxItem {
   id: string;
   text: string;
   timestamp: string;
+  status: InboxStatus;
+  processedAt?: string;
 }
 
 export interface HistorySession {

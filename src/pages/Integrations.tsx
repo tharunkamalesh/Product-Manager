@@ -16,7 +16,7 @@ const Integrations = () => {
         <TopBar />
         <main className="px-5 py-5 max-w-4xl mx-auto">
           <header className="mb-8">
-            <h1 className="text-2xl font-bold tracking-tight">🔌 Integrations</h1>
+            <h1 className="text-[22px] font-semibold tracking-tight">Integrations</h1>
             <p className="text-muted-foreground mt-1 text-sm">
               Connect your favorite tools to automate data capture and sync decisions.
             </p>
@@ -24,9 +24,9 @@ const Integrations = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {APPS.map((app) => (
-              <div key={app.name} className="p-6 rounded-2xl border bg-card/50 relative overflow-hidden group border-dashed">
+              <div key={app.name} className="p-6 rounded-md border bg-card/50 relative overflow-hidden group border-dashed">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center">
+                  <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
                     <app.icon className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-muted text-muted-foreground uppercase tracking-widest">

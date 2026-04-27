@@ -23,7 +23,7 @@ const History = () => {
         <main className="px-5 py-5 max-w-4xl mx-auto">
           <header className="mb-8 flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">🕓 History</h1>
+              <h1 className="text-[22px] font-semibold tracking-tight">History</h1>
               <p className="text-muted-foreground mt-1 text-sm">
                 Past analysis sessions and AI decisions.
               </p>
@@ -38,13 +38,13 @@ const History = () => {
 
           <div className="space-y-4">
             {history.length === 0 ? (
-              <div className="text-center py-20 border border-dashed rounded-2xl">
+              <div className="text-center py-20 border border-dashed rounded-md">
                 <HistoryIcon className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
                 <p className="text-muted-foreground">No history yet. Start analyzing your inputs.</p>
               </div>
             ) : (
               history.map((session) => (
-                <div key={session.id} className="p-5 rounded-2xl border bg-card shadow-sm hover:shadow-md transition-all cursor-pointer group">
+                <div key={session.id} className="p-5 rounded-md border bg-card shadow-sm hover:shadow-md transition-all cursor-pointer group">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                       <Calendar className="h-3 w-3" />

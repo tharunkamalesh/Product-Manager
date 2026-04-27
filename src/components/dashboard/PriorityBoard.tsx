@@ -1,46 +1,31 @@
 import { useState } from "react";
-import { Sparkles, ArrowUpRight, Flame, AlertCircle, CheckCircle2, Mail, Layers, Clock, AlertTriangle } from "lucide-react";
+import { ChevronDown, Layers, Mail, Bug, FileText, Clock, ChevronsUp, Equal, ChevronsDown } from "lucide-react";
 import type { Priority } from "@/types/copilot";
 import { cn } from "@/lib/utils";
 
 type Bucket = "high" | "medium" | "low";
 
-const BUCKET_META: Record<Bucket, { label: string; emoji: string; icon: any; bg: string; border: string; text: string; pillBg: string; pillText: string; tagBg: string; tagText: string }> = {
+const BUCKET_META: Record<
+  Bucket,
+  { label: string; iconColor: string; dot: string; Icon: any }
+> = {
   high: {
-    label: "High Priority",
-    emoji: "🔥",
-    icon: Flame,
-    bg: "bg-priority-high-soft",
-    border: "border-priority-high-border",
-    text: "text-priority-high",
-    pillBg: "bg-priority-high/10",
-    pillText: "text-priority-high",
-    tagBg: "bg-priority-high",
-    tagText: "text-white",
+    label: "Highest",
+    iconColor: "text-priority-high",
+    dot: "bg-priority-high",
+    Icon: ChevronsUp,
   },
   medium: {
-    label: "Medium Priority",
-    emoji: "🟡",
-    icon: AlertCircle,
-    bg: "bg-priority-medium-soft",
-    border: "border-priority-medium-border",
-    text: "text-priority-medium",
-    pillBg: "bg-priority-medium/10",
-    pillText: "text-priority-medium",
-    tagBg: "bg-priority-medium",
-    tagText: "text-white",
+    label: "Medium",
+    iconColor: "text-priority-medium",
+    dot: "bg-priority-medium",
+    Icon: Equal,
   },
   low: {
-    label: "Low Priority",
-    emoji: "🟢",
-    icon: CheckCircle2,
-    bg: "bg-priority-low-soft",
-    border: "border-priority-low-border",
-    text: "text-priority-low",
-    pillBg: "bg-priority-low/10",
-    pillText: "text-priority-low",
-    tagBg: "bg-priority-low",
-    tagText: "text-white",
+    label: "Low",
+    iconColor: "text-priority-low",
+    dot: "bg-priority-low",
+    Icon: ChevronsDown,
   },
 };
 
@@ -72,26 +57,23 @@ export const PriorityBoard = ({ high, medium, low, hasResult }: PriorityBoardPro
   };
 
   return (
-    <section id="priority-board" className="rounded-xl border border-border bg-card shadow-card p-5">
-      <header className="flex items-start justify-between gap-3 mb-4">
+    <section id="priority-board" className="rounded-md border border-border bg-card">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div>
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <h2 className="text-base font-semibold">AI Prioritization</h2>
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Based on impact, urgency, effort & context
+          <h2 className="text-[13px] font-semibold">Prioritization</h2>
+          <p className="text-[11.5px] text-muted-foreground mt-0.5">
+            Ranked by impact, urgency, and effort.
           </p>
         </div>
         <button
           onClick={toggleAll}
-          className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1"
+          className="text-[11.5px] font-medium text-primary hover:underline"
         >
-          {allExpanded ? "Collapse all" : "View all"} <ArrowUpRight className="h-3 w-3" />
+          {allExpanded ? "Collapse all" : "Expand all"}
         </button>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
         <Column bucket="high" items={high} hasResult={hasResult} expanded={expanded.high} onToggle={() => toggleBucket("high")} />
         <Column bucket="medium" items={medium} hasResult={hasResult} expanded={expanded.medium} onToggle={() => toggleBucket("medium")} />
         <Column bucket="low" items={low} hasResult={hasResult} expanded={expanded.low} onToggle={() => toggleBucket("low")} />
@@ -100,25 +82,39 @@ export const PriorityBoard = ({ high, medium, low, hasResult }: PriorityBoardPro
   );
 };
 
-const Column = ({ bucket, items, hasResult, expanded, onToggle }: { bucket: Bucket; items: Priority[]; hasResult: boolean; expanded: boolean; onToggle: () => void }) => {
+const Column = ({
+  bucket,
+  items,
+  hasResult,
+  expanded,
+  onToggle,
+}: {
+  bucket: Bucket;
+  items: Priority[];
+  hasResult: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+}) => {
   const meta = BUCKET_META[bucket];
   const visible = expanded ? items : items.slice(0, COLLAPSED_LIMIT);
-  const hiddenCount = items.length - visible.length;
 
   return (
-    <div className={cn("rounded-xl border p-3", meta.bg, meta.border)}>
-      <div className="flex items-center justify-between mb-3 px-1">
-        <h3 className={cn("text-sm font-semibold flex items-center gap-1.5", meta.text)}>
-          <span>{meta.emoji}</span>
-          {meta.label} ({items.length})
+    <div className="p-3 min-w-0">
+      <div className="flex items-center gap-2 mb-3 px-1">
+        <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
+        <h3 className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {meta.label}
         </h3>
+        <span className="ml-auto text-[10.5px] tabular-nums text-muted-foreground/70 px-1.5 rounded-sm bg-muted">
+          {items.length}
+        </span>
       </div>
 
-      <div className="space-y-2.5">
+      <div className="space-y-1.5">
         {items.length === 0 ? (
-          <div className="rounded-lg bg-card/70 border border-dashed border-border p-4 text-center">
-            <p className="text-xs text-muted-foreground">
-              {hasResult ? "No items in this bucket." : "Run analysis to populate."}
+          <div className="rounded border border-dashed border-border py-6 text-center">
+            <p className="text-[11.5px] text-muted-foreground/70">
+              {hasResult ? "Nothing here" : "Run analysis"}
             </p>
           </div>
         ) : (
@@ -128,15 +124,10 @@ const Column = ({ bucket, items, hasResult, expanded, onToggle }: { bucket: Buck
         {items.length > COLLAPSED_LIMIT && (
           <button
             onClick={onToggle}
-            className={cn(
-              "w-full text-xs font-medium pt-1 inline-flex items-center justify-center gap-1 hover:underline",
-              meta.text
-            )}
+            className="w-full text-[11.5px] font-medium pt-1 inline-flex items-center justify-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
           >
-            {expanded ? "Show less ↑" : `View all (${items.length}) →`}
-            {!expanded && hiddenCount > 0 && (
-              <span className="text-muted-foreground"> · {hiddenCount} more</span>
-            )}
+            <ChevronDown className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} />
+            {expanded ? "Show less" : `Show ${items.length - visible.length} more`}
           </button>
         )}
       </div>
@@ -144,90 +135,109 @@ const Column = ({ bucket, items, hasResult, expanded, onToggle }: { bucket: Buck
   );
 };
 
-const PriorityCard = ({ item, bucket, expanded }: { item: Priority; bucket: Bucket; expanded: boolean }) => {
+// Parse "BUG-1421 (P1) — Payment SDK crash..." into { key: "BUG-1421", title: "Payment SDK crash..." }
+const parseTask = (raw: string): { key: string | null; title: string } => {
+  const text = (raw || "").trim();
+  // Match a leading issue key like "BUG-1421", "TASK-902", "SUPP-330", optional " (P1)" tag, then separator
+  const m = text.match(/^([A-Z][A-Z0-9]{1,9}-\d+)(?:\s*\([^)]*\))?\s*[—\-:]\s*(.+)$/);
+  if (m) {
+    return { key: m[1], title: m[2].trim() };
+  }
+  return { key: null, title: text };
+};
+
+const TYPE_ICONS: Record<string, any> = {
+  BUG: Bug,
+  TASK: Layers,
+  STORY: FileText,
+  SUPP: Mail,
+  EMAIL: Mail,
+};
+
+const PriorityCard = ({
+  item,
+  bucket,
+  expanded,
+}: {
+  item: Priority;
+  bucket: Bucket;
+  expanded: boolean;
+}) => {
   const meta = BUCKET_META[bucket];
-  const tag = bucket === "high" ? "Critical" : bucket === "medium" ? "Medium" : "Low";
-  const tagClass =
-    bucket === "high"
-      ? "bg-priority-high/15 text-priority-high"
-      : bucket === "medium"
-      ? "bg-priority-medium/15 text-priority-medium"
-      : "bg-priority-low/15 text-priority-low";
+  const PriorityIcon = meta.Icon;
 
-  const assignee = item.assignee ?? null;
-  const source = item.source ?? null;
+  const { key, title } = parseTask(item.task);
+  const prefix = key ? key.split("-")[0] : null;
+  const Icon =
+    (prefix && TYPE_ICONS[prefix]) ||
+    (item.source === "Email" ? Mail : item.source === "Jira" ? Layers : Layers);
+
   const dueDate = item.dueDate ?? null;
-  const isOverdue = false;
-
-  // Pull a short title from the first line / first 60 chars
-  const lines = (item.task || "").split(/[\n.—-]/).map((s) => s.trim()).filter(Boolean);
-  const title = (lines[0] || item.task).slice(0, 60);
-  const subtitle = lines.slice(1).join(" · ").slice(0, 80) || item.reasoning.slice(0, 80);
-
-  const SourceIcon = source === "Jira" ? Layers : source === "Email" ? Mail : Layers;
+  const subtitle = item.reasoning;
 
   return (
-    <article className="rounded-lg bg-card border border-border p-3 shadow-soft hover:shadow-card transition-smooth relative group">
-      <div className="flex items-start justify-between gap-2 mb-1.5">
-        <div className="flex items-center gap-2">
-          <div className="h-5 w-5 rounded bg-muted flex items-center justify-center">
-            <SourceIcon className="h-3 w-3 text-muted-foreground" />
+    <article className="rounded border border-border bg-card hover:border-primary/40 hover:bg-muted/30 transition-colors p-2.5 group">
+      <div className="flex items-start gap-2">
+        <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          {/* Title + status pill */}
+          <div className="flex items-start justify-between gap-2">
+            <h4 className={cn(
+              "text-[12.5px] font-medium leading-snug text-foreground",
+              !expanded && "line-clamp-2"
+            )}>
+              {title}
+            </h4>
+            <span
+              title={meta.label}
+              className={cn(
+                "shrink-0 inline-flex items-center justify-center h-4 w-4 rounded-sm",
+                meta.iconColor
+              )}
+              aria-label={`Priority: ${meta.label}`}
+            >
+              <PriorityIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
+            </span>
           </div>
-          <h4 className="text-[13px] font-semibold leading-snug text-foreground">{title}</h4>
-        </div>
-        <span className={cn("shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded", tagClass)}>
-          {tag}
-        </span>
-      </div>
-      
-      <p className={cn(
-        "text-[11.5px] text-muted-foreground leading-snug mb-2.5",
-        !expanded && "line-clamp-2"
-      )}>
-        {subtitle}
-      </p>
 
-      {expanded && item.memoryInfluence && (
-        <p className="text-[11px] italic text-muted-foreground leading-snug mb-2.5 border-l-2 border-primary/30 pl-2">
-          {item.memoryInfluence}
-        </p>
-      )}
-
-      {(assignee || dueDate) && (
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2">
-            {assignee && (
-              <div className="flex -space-x-1">
-                <div className="h-5 w-5 rounded-full bg-primary/20 border border-background flex items-center justify-center text-[10px] font-bold text-primary">
-                  {assignee}
-                </div>
-              </div>
+          {/* Issue key + meta row */}
+          <div className="flex items-center gap-2 mt-1.5 text-[10.5px] text-muted-foreground">
+            {key && (
+              <span className="font-mono tracking-tight text-muted-foreground/80">
+                {key}
+              </span>
+            )}
+            {key && (item.effort || dueDate) && (
+              <span className="text-muted-foreground/40">·</span>
+            )}
+            {item.effort && (
+              <span className="inline-flex items-center gap-1">
+                <span className="text-muted-foreground/60">Effort</span>
+                <span className="font-medium text-foreground/80">{item.effort}</span>
+              </span>
             )}
             {dueDate && (
-              <div className={cn(
-                "flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded",
-                isOverdue ? "bg-destructive/10 text-destructive font-medium" : "bg-muted text-muted-foreground"
-              )}>
-                <Clock className="h-2.5 w-2.5" />
-                {dueDate}
-                {isOverdue && <AlertTriangle className="h-2.5 w-2.5 ml-0.5" />}
-              </div>
+              <>
+                <span className="text-muted-foreground/40">·</span>
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="h-2.5 w-2.5" />
+                  {dueDate}
+                </span>
+              </>
             )}
           </div>
-          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-            <span className="font-medium text-foreground/70 uppercase tracking-tight">{item.effort} Effort</span>
-          </div>
-        </div>
-      )}
 
-      <div className="flex items-center justify-between pt-2 border-t border-border/70">
-        <div className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
-          <span>Impact: <span className="font-medium text-foreground/70">{item.impact}</span></span>
-          <span>·</span>
-          <span>Urgency: <span className="font-medium text-foreground/70">{item.urgency}</span></span>
-        </div>
-        <div className={cn("h-5 w-5 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity", meta.pillBg)}>
-          <Sparkles className={cn("h-3 w-3", meta.pillText)} />
+          {/* Reasoning (only when expanded) */}
+          {expanded && subtitle && (
+            <p className="text-[11.5px] text-muted-foreground leading-snug mt-2 pt-2 border-t border-border/70">
+              {subtitle}
+            </p>
+          )}
+          {expanded && item.memoryInfluence && (
+            <p className="text-[11px] italic text-muted-foreground/80 leading-snug mt-1.5 border-l-2 border-primary/40 pl-2">
+              {item.memoryInfluence}
+            </p>
+          )}
         </div>
       </div>
     </article>

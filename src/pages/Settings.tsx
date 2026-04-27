@@ -28,7 +28,7 @@ const Settings = () => {
         <TopBar />
         <main className="px-5 py-5 max-w-2xl mx-auto">
           <header className="mb-8">
-            <h1 className="text-2xl font-bold tracking-tight">⚙️ Settings</h1>
+            <h1 className="text-[22px] font-semibold tracking-tight">Settings</h1>
             <p className="text-muted-foreground mt-1 text-sm">
               Configure your copilot's behavior and core context.
             </p>
@@ -36,7 +36,7 @@ const Settings = () => {
 
           <div className="space-y-8">
             {/* Core Goal */}
-            <div className="p-6 rounded-2xl border bg-card shadow-sm">
+            <div className="p-6 rounded-md border bg-card shadow-sm">
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Target className="h-4 w-4 text-primary" />
@@ -55,7 +55,7 @@ const Settings = () => {
             </div>
 
             {/* AI Behavior */}
-            <div className="p-6 rounded-2xl border bg-card shadow-sm">
+            <div className="p-6 rounded-md border bg-card shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
                   <Brain className="h-4 w-4 text-purple-500" />

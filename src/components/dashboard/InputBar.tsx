@@ -65,57 +65,64 @@ export const InputBar = ({ value, onChange, onAnalyze, loading }: InputBarProps)
   };
 
   return (
-    <section className="rounded-xl border border-border bg-card shadow-card p-5">
-      <h2 className="text-sm font-semibold mb-3">Capture your daily problems, tasks, bugs, messages...</h2>
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Paste anything here... (bug reports, customer messages, notes, tasks…)"
-        className="w-full min-h-[110px] resize-none rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm placeholder:text-muted-foreground/70 focus:bg-card focus:border-primary/40 outline-none transition-smooth"
-      />
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <SourceChip onClick={handleEmail} icon={<Mail className="h-3.5 w-3.5" />} label="Email" color="text-info" />
-          <SourceChip onClick={handleJira} icon={<JiraIcon />} label="Jira" color="text-info" />
-          <SourceChip onClick={handleUpload} icon={<Upload className="h-3.5 w-3.5" />} label="Upload" color="text-muted-foreground" />
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".txt,.md,.csv,.json,.log"
-            onChange={handleFile}
-            className="hidden"
-          />
+    <section className="rounded-md border border-border bg-card">
+      <div className="px-4 py-3 border-b border-border">
+        <h2 className="text-[13px] font-semibold">Capture inputs</h2>
+        <p className="text-[11.5px] text-muted-foreground mt-0.5">
+          Paste bug reports, customer messages, notes, or tasks — we'll prioritize them.
+        </p>
+      </div>
+      <div className="p-4">
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Paste anything here..."
+          className="w-full min-h-[110px] resize-none rounded border border-border bg-card px-3 py-2 text-[13px] placeholder:text-muted-foreground/70 focus:border-primary/60 outline-none transition-colors"
+        />
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <SourceChip onClick={handleEmail} icon={<Mail className="h-3.5 w-3.5" />} label="Email" />
+            <SourceChip onClick={handleJira} icon={<JiraIcon />} label="Jira" />
+            <SourceChip onClick={handleUpload} icon={<Upload className="h-3.5 w-3.5" />} label="Upload" />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt,.md,.csv,.json,.log"
+              onChange={handleFile}
+              className="hidden"
+            />
+          </div>
+          <Button
+            onClick={onAnalyze}
+            disabled={loading || !value.trim()}
+            size="sm"
+            className="gap-1.5 h-8"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Analyzing
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-3.5 w-3.5" />
+                Analyze
+              </>
+            )}
+          </Button>
         </div>
-        <Button
-          onClick={onAnalyze}
-          disabled={loading || !value.trim()}
-          variant="primary"
-          className="gap-2"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Thinking...
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-4 w-4" />
-              Analyze Now
-            </>
-          )}
-        </Button>
       </div>
     </section>
   );
 };
 
-const SourceChip = ({ icon, label, color, onClick }: { icon: React.ReactNode; label: string; color: string; onClick: () => void }) => (
+const SourceChip = ({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) => (
   <button
     type="button"
     onClick={onClick}
-    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border bg-card hover:bg-muted text-xs font-medium transition-smooth"
+    className="inline-flex items-center gap-1.5 px-2 h-7 rounded border border-border bg-card hover:bg-muted text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
   >
-    <span className={color}>{icon}</span>
+    <span>{icon}</span>
     {label}
   </button>
 );

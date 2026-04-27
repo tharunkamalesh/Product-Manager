@@ -1,8 +1,23 @@
+import { useEffect, useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
-import { Sparkles, LayoutDashboard, Inbox, Flame, ListChecks, Calendar, Plug, History, Settings, HelpCircle, LogOut, Users } from "lucide-react";
+import {
+  LayoutDashboard,
+  Inbox,
+  Flame,
+  ListChecks,
+  Calendar,
+  Plug,
+  History,
+  Settings,
+  HelpCircle,
+  LogOut,
+  Users,
+  Compass,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OnboardingGuide } from "./OnboardingGuide";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCopilot } from "@/hooks/useCopilot";
 import { toast } from "sonner";
 
 type NavItem = {
@@ -10,19 +25,20 @@ type NavItem = {
   icon: any;
   label: string;
   path: string;
-  badge?: string;
 };
 
-const NAV: NavItem[] = [
+const NAV_PRIMARY: NavItem[] = [
   { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { id: "inbox", icon: Inbox, label: "Inbox", path: "/inbox", badge: "12" },
+  { id: "inbox", icon: Inbox, label: "Inbox", path: "/inbox" },
   { id: "priorities", icon: Flame, label: "Priorities", path: "/priorities" },
-  { id: "action-plan", icon: ListChecks, label: "Action Plan", path: "/action-plan" },
+  { id: "action-plan", icon: ListChecks, label: "Action plan", path: "/action-plan" },
   { id: "calendar", icon: Calendar, label: "Calendar", path: "/calendar" },
-  { id: "integrations", icon: Plug, label: "Integrations", path: "/integrations" },
-  { id: "team-setup", icon: Users, label: "Team Setup", path: "/team-setup" },
   { id: "history", icon: History, label: "History", path: "/history" },
-  { id: "guide", icon: HelpCircle, label: "Help & Guide", path: "#" },
+];
+
+const NAV_SECONDARY: NavItem[] = [
+  { id: "integrations", icon: Plug, label: "Integrations", path: "/integrations" },
+  { id: "team-setup", icon: Users, label: "Team setup", path: "/team-setup" },
   { id: "settings", icon: Settings, label: "Settings", path: "/settings" },
 ];
 
@@ -30,6 +46,12 @@ export const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, logout } = useAuth();
+  const { inbox } = useCopilot();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    setPendingCount(inbox.filter((i) => i.status === "pending").length);
+  }, [inbox]);
 
   const handleLogout = async () => {
     try {
@@ -46,83 +68,95 @@ export const Sidebar = () => {
     ? profile.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "?";
 
+  const renderNav = (items: NavItem[]) =>
+    items.map((item) => {
+      const isActive = location.pathname === item.path;
+      const showBadge = item.id === "inbox" && pendingCount > 0;
+      return (
+        <Link
+          key={item.id}
+          to={item.path}
+          className={cn(
+            "group relative w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded text-[13px] font-medium transition-colors",
+            isActive
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground/80 hover:bg-muted hover:text-sidebar-foreground"
+          )}
+        >
+          {isActive && (
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r bg-primary" />
+          )}
+          <span className="flex items-center gap-2.5">
+            <item.icon className={cn("h-[15px] w-[15px]", isActive ? "text-primary" : "text-muted-foreground group-hover:text-sidebar-foreground")} />
+            {item.label}
+          </span>
+          {showBadge && (
+            <span className="text-[10px] font-semibold px-1.5 py-0 rounded-sm bg-primary/10 text-primary tabular-nums">
+              {pendingCount}
+            </span>
+          )}
+        </Link>
+      );
+    });
+
   return (
-    <aside className="hidden lg:flex flex-col w-[230px] shrink-0 bg-sidebar border-r border-sidebar-border min-h-screen sticky top-0">
+    <aside className="hidden lg:flex flex-col w-[240px] shrink-0 bg-sidebar border-r border-sidebar-border min-h-screen sticky top-0">
       {/* Logo */}
-      <Link to="/" className="px-5 py-5 flex items-center gap-2.5 hover:opacity-90 transition-opacity">
-        <div className="h-9 w-9 rounded-lg bg-gradient-primary flex items-center justify-center shadow-elegant">
-          <Sparkles className="h-4 w-4 text-primary-foreground" strokeWidth={2.5} />
+      <Link
+        to="/"
+        className="h-14 px-4 flex items-center gap-2.5 border-b border-sidebar-border hover:bg-muted/40 transition-colors"
+      >
+        <div className="h-7 w-7 rounded bg-primary flex items-center justify-center">
+          <Compass className="h-4 w-4 text-primary-foreground" strokeWidth={2.25} />
         </div>
-        <div className="leading-tight">
-          <h1 className="text-sm font-semibold tracking-tight">PM Daily Copilot</h1>
-          <p className="text-[10.5px] text-muted-foreground">AI Decision Engine for PMs</p>
-        </div>
+        <span className="text-[14px] font-semibold tracking-tight">Founder's Compass</span>
       </Link>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-2 space-y-0.5">
-        {NAV.map((item) => {
-          const isActive = location.pathname === item.path;
-          const content = (
-            <Link
-              key={item.id}
-              to={item.path}
-              className={cn(
-                "w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-smooth",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
-              )}
-            >
-              <span className="flex items-center gap-2.5">
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </span>
-              {item.badge && (
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground tabular-nums">
-                  {item.badge}
-                </span>
-              )}
-            </Link>
-          );
+      <nav className="flex-1 px-2 py-3 space-y-4 overflow-y-auto">
+        <div>
+          <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            Workspace
+          </p>
+          <div className="space-y-0.5">{renderNav(NAV_PRIMARY)}</div>
+        </div>
 
-          if (item.id === "guide") {
-            return (
-              <div key={item.id} className="cursor-pointer">
-                <OnboardingGuide>{content}</OnboardingGuide>
-              </div>
-            );
-          }
+        <div>
+          <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            Setup
+          </p>
+          <div className="space-y-0.5">{renderNav(NAV_SECONDARY)}</div>
+        </div>
 
-          return content;
-        })}
-      </nav>
-
-      {/* User + Logout */}
-      <div className="m-3 mt-auto">
-        {/* Onboarding */}
-        <div className="mb-2">
+        <div>
           <OnboardingGuide>
-            <button className="w-full text-[11px] font-medium px-3 py-1.5 rounded-md bg-card border border-border hover:border-primary/40 transition-smooth">
-              Learn more →
+            <button className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded text-[13px] font-medium text-sidebar-foreground/80 hover:bg-muted hover:text-sidebar-foreground transition-colors">
+              <HelpCircle className="h-[15px] w-[15px] text-muted-foreground" />
+              Help & guide
             </button>
           </OnboardingGuide>
         </div>
+      </nav>
 
-        {/* User identity block */}
-        <div className="flex items-center gap-2.5 p-3 rounded-xl bg-sidebar-accent/50 border border-sidebar-border">
-          <div className="h-8 w-8 rounded-full bg-gradient-primary flex items-center justify-center text-[11px] font-bold text-white shrink-0">
+      {/* User block */}
+      <div className="p-2 border-t border-sidebar-border">
+        <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-muted/60 transition-colors">
+          <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[11px] font-semibold shrink-0">
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold truncate text-sidebar-foreground">{profile?.name || "User"}</p>
-            <p className="text-[10px] text-muted-foreground truncate">{profile?.companyName || ""}</p>
+            <p className="text-[12px] font-medium leading-tight truncate text-sidebar-foreground">
+              {profile?.name || "User"}
+            </p>
+            <p className="text-[10.5px] text-muted-foreground leading-tight truncate">
+              {profile?.companyName || profile?.email || ""}
+            </p>
           </div>
           <button
             id="sidebar-logout-btn"
             onClick={handleLogout}
-            title="Logout"
-            className="shrink-0 text-muted-foreground hover:text-destructive transition-smooth p-1 rounded-md hover:bg-destructive/10"
+            title="Sign out"
+            className="shrink-0 text-muted-foreground hover:text-destructive transition-colors p-1 rounded hover:bg-destructive/10"
           >
             <LogOut className="h-3.5 w-3.5" />
           </button>

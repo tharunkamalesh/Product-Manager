@@ -2,81 +2,133 @@
 @tailwind components;
 @tailwind utilities;
 
-/* PM Daily Copilot — light SaaS dashboard. All colors HSL. */
+/* Founder's Compass — Jira-inspired clean SaaS theme. All colors HSL. */
 
 @layer base {
   :root {
-    --background: 220 30% 97%;
-    --foreground: 224 30% 14%;
+    --background: 220 13% 97%;
+    --foreground: 218 50% 16%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 30% 14%;
+    --card-foreground: 218 50% 16%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 30% 14%;
+    --popover-foreground: 218 50% 16%;
 
-    --primary: 252 83% 62%;
+    --primary: 214 100% 40%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 258 90% 72%;
+    --primary-glow: 214 100% 50%;
 
-    --secondary: 220 20% 96%;
-    --secondary-foreground: 224 30% 20%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 218 45% 22%;
 
-    --muted: 220 20% 96%;
-    --muted-foreground: 220 10% 46%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 215 14% 45%;
 
-    --accent: 252 90% 96%;
-    --accent-foreground: 252 83% 50%;
+    --accent: 214 100% 96%;
+    --accent-foreground: 214 100% 35%;
 
-    --destructive: 0 78% 60%;
+    --destructive: 4 78% 53%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 60% 42%;
+    --success: 152 60% 38%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 32 100% 49%;
     --warning-foreground: 0 0% 100%;
 
-    --info: 212 92% 56%;
+    --info: 214 100% 40%;
     --info-foreground: 0 0% 100%;
 
-    /* Priority bucket colors (soft pastel surfaces + strong accents) */
-    --priority-high: 0 78% 60%;
-    --priority-high-soft: 0 88% 97%;
-    --priority-high-border: 0 80% 90%;
+    --priority-high: 4 78% 53%;
+    --priority-high-soft: 4 80% 97%;
+    --priority-high-border: 4 60% 90%;
 
-    --priority-medium: 35 92% 52%;
-    --priority-medium-soft: 42 100% 96%;
-    --priority-medium-border: 38 90% 85%;
+    --priority-medium: 32 100% 45%;
+    --priority-medium-soft: 32 100% 96%;
+    --priority-medium-border: 32 80% 88%;
 
-    --priority-low: 152 55% 42%;
-    --priority-low-soft: 145 60% 96%;
-    --priority-low-border: 148 50% 85%;
+    --priority-low: 152 60% 38%;
+    --priority-low-soft: 152 50% 96%;
+    --priority-low-border: 152 40% 85%;
 
-    --border: 220 18% 90%;
-    --input: 220 18% 90%;
-    --ring: 252 83% 62%;
+    --border: 220 13% 89%;
+    --input: 220 13% 89%;
+    --ring: 214 100% 40%;
 
-    --radius: 0.75rem;
+    --radius: 0.25rem;
 
-    --gradient-primary: linear-gradient(135deg, hsl(252 83% 62%), hsl(265 90% 70%));
-    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%), hsl(220 25% 99%));
-    --gradient-glow: radial-gradient(800px circle at 50% -10%, hsl(252 83% 62% / 0.07), transparent 60%);
+    --gradient-primary: hsl(214 100% 40%);
+    --gradient-surface: hsl(0 0% 100%);
+    --gradient-glow: none;
 
-    --shadow-elegant: 0 10px 40px -12px hsl(252 83% 50% / 0.30);
-    --shadow-card: 0 1px 2px 0 hsl(220 30% 20% / 0.04), 0 4px 12px -4px hsl(220 30% 20% / 0.06);
-    --shadow-soft: 0 1px 2px 0 hsl(220 30% 20% / 0.04);
+    --shadow-elegant: 0 1px 1px 0 hsl(218 50% 16% / 0.08);
+    --shadow-card: 0 1px 1px 0 hsl(218 50% 16% / 0.06);
+    --shadow-soft: 0 1px 1px 0 hsl(218 50% 16% / 0.04);
 
-    --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 224 25% 22%;
-    --sidebar-primary: 252 83% 62%;
+    --sidebar-foreground: 218 45% 22%;
+    --sidebar-primary: 214 100% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 252 90% 96%;
-    --sidebar-accent-foreground: 252 83% 50%;
-    --sidebar-border: 220 18% 92%;
-    --sidebar-ring: 252 83% 62%;
+    --sidebar-accent: 214 100% 96%;
+    --sidebar-accent-foreground: 214 100% 35%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 214 100% 40%;
+  }
+
+  .dark {
+    --background: 218 27% 8%;
+    --foreground: 220 13% 92%;
+
+    --card: 218 27% 11%;
+    --card-foreground: 220 13% 92%;
+
+    --popover: 218 27% 11%;
+    --popover-foreground: 220 13% 92%;
+
+    --primary: 214 100% 60%;
+    --primary-foreground: 218 27% 8%;
+    --primary-glow: 214 100% 70%;
+
+    --secondary: 218 25% 15%;
+    --secondary-foreground: 220 13% 92%;
+
+    --muted: 218 25% 15%;
+    --muted-foreground: 218 13% 60%;
+
+    --accent: 214 50% 18%;
+    --accent-foreground: 214 100% 80%;
+
+    --destructive: 4 65% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 50% 50%;
+    --warning: 32 90% 55%;
+    --info: 214 100% 60%;
+
+    --priority-high: 4 65% 60%;
+    --priority-high-soft: 4 50% 18%;
+    --priority-high-border: 4 50% 25%;
+
+    --priority-medium: 32 90% 55%;
+    --priority-medium-soft: 32 50% 18%;
+    --priority-medium-border: 32 50% 25%;
+
+    --priority-low: 152 50% 50%;
+    --priority-low-soft: 152 40% 16%;
+    --priority-low-border: 152 40% 25%;
+
+    --border: 218 22% 20%;
+    --input: 218 22% 20%;
+    --ring: 214 100% 60%;
+
+    --sidebar-background: 218 27% 10%;
+    --sidebar-foreground: 220 13% 88%;
+    --sidebar-accent: 214 50% 18%;
+    --sidebar-accent-foreground: 214 100% 80%;
+    --sidebar-border: 218 22% 18%;
   }
 }
 
@@ -97,13 +149,13 @@
 
 @layer utilities {
   .bg-gradient-primary {
-    background: var(--gradient-primary);
+    background: hsl(var(--primary));
   }
   .bg-gradient-surface {
-    background: var(--gradient-surface);
+    background: hsl(var(--card));
   }
   .bg-gradient-glow {
-    background: var(--gradient-glow);
+    background: transparent;
   }
   .shadow-elegant {
     box-shadow: var(--shadow-elegant);

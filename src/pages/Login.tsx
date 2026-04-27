@@ -1,6 +1,6 @@
 import { useState, FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Sparkles, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { Compass, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
@@ -26,7 +26,9 @@ const Login = () => {
       navigate("/");
     } catch (err: any) {
       const msg =
-        err?.code === "auth/user-not-found" || err?.code === "auth/wrong-password" || err?.code === "auth/invalid-credential"
+        err?.code === "auth/user-not-found" ||
+        err?.code === "auth/wrong-password" ||
+        err?.code === "auth/invalid-credential"
           ? "Invalid email or password."
           : err?.code === "auth/too-many-requests"
           ? "Too many attempts. Please try again later."
@@ -38,58 +40,51 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background glow */}
-      <div className="absolute inset-0 bg-gradient-glow pointer-events-none" />
-      <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
-
-      <div className="relative w-full max-w-md">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <div className="w-full max-w-[400px]">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-gradient-primary shadow-elegant mb-4">
-            <Sparkles className="h-5 w-5 text-white" strokeWidth={2.5} />
+        <div className="flex items-center justify-center gap-2 mb-10">
+          <div className="h-7 w-7 rounded bg-primary flex items-center justify-center">
+            <Compass className="h-4 w-4 text-primary-foreground" strokeWidth={2.25} />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Welcome back</h1>
-          <p className="text-sm text-muted-foreground mt-1">Sign in to your PM Copilot workspace</p>
+          <span className="text-[15px] font-semibold tracking-tight">Founder's Compass</span>
         </div>
 
         {/* Card */}
-        <div className="bg-card border border-border rounded-2xl shadow-card p-8 space-y-5">
+        <div className="bg-card border border-border rounded-md p-8">
+          <h1 className="text-[20px] font-semibold tracking-tight mb-1">Log in to your account</h1>
+          <p className="text-[12.5px] text-muted-foreground mb-6">
+            Welcome back. Sign in to continue.
+          </p>
+
           {error && (
-            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-destructive/8 border border-destructive/20 text-destructive text-sm">
-              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+            <div className="flex items-start gap-2 p-2.5 rounded border border-destructive/30 bg-destructive/5 text-destructive text-[12.5px] mb-4">
+              <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
             <div className="space-y-1.5">
-              <label htmlFor="login-email" className="text-xs font-semibold text-foreground/80 uppercase tracking-wide">
+              <label htmlFor="login-email" className="text-[11.5px] font-medium text-foreground">
                 Email
               </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  id="login-email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="ada@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-primary transition-smooth"
-                />
-              </div>
+              <input
+                id="login-email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full h-9 px-3 rounded border border-input bg-card text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-colors"
+              />
             </div>
 
-            {/* Password */}
             <div className="space-y-1.5">
-              <label htmlFor="login-password" className="text-xs font-semibold text-foreground/80 uppercase tracking-wide">
+              <label htmlFor="login-password" className="text-[11.5px] font-medium text-foreground">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   id="login-password"
                   type={showPassword ? "text" : "password"}
@@ -97,15 +92,15 @@ const Login = () => {
                   placeholder="Your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-9 pr-10 py-2.5 rounded-lg border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-primary transition-smooth"
+                  className="w-full h-9 pl-3 pr-9 rounded border border-input bg-card text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-smooth"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                 </button>
               </div>
             </div>
@@ -114,29 +109,29 @@ const Login = () => {
               id="login-submit"
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-gradient-primary text-primary-foreground text-sm font-semibold shadow-elegant hover:opacity-90 active:scale-[0.98] transition-smooth disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+              className="w-full flex items-center justify-center gap-2 h-9 rounded bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Signing in…
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Signing in
                 </>
               ) : (
-                "Sign In →"
+                "Continue"
               )}
             </button>
           </form>
 
-          <p className="text-center text-xs text-muted-foreground pt-1">
+          <p className="text-center text-[12px] text-muted-foreground mt-6">
             Don't have an account?{" "}
-            <Link to="/signup" className="text-primary font-semibold hover:underline">
-              Create one
+            <Link to="/signup" className="text-primary font-medium hover:underline">
+              Sign up
             </Link>
           </p>
         </div>
 
-        <p className="text-center text-[11px] text-muted-foreground/60 mt-6">
-          PM Daily Copilot — AI Decision Engine for PMs
+        <p className="text-center text-[11px] text-muted-foreground/70 mt-6">
+          AI prioritization for product teams
         </p>
       </div>
     </div>

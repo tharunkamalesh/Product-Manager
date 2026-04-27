@@ -1,11 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
-import type { AnalysisResult, InboxItem, HistorySession } from "@/types/copilot";
-import { fetchHistory, saveAnalysis } from "@/lib/db";
+import type { AnalysisResult, InboxItem, InboxStatus, HistorySession } from "@/types/copilot";
+import {
+  fetchHistory,
+  saveAnalysis,
+  fetchInbox,
+  addInboxItem,
+  updateInboxItemText,
+  setInboxItemStatus,
+  deleteInboxItem,
+} from "@/lib/db";
+import { useAuth } from "@/contexts/AuthContext";
 
-const INBOX_KEY = "pm-daily-copilot:inbox:v1";
 const LATEST_KEY = "pm-daily-copilot:latest:v1";
 
 export function useCopilot() {
+  const { user } = useAuth();
   const [inbox, setInbox] = useState<InboxItem[]>([]);
   const [history, setHistory] = useState<HistorySession[]>([]);
   const [latestResult, setLatestResult] = useState<AnalysisResult | null>(null);
@@ -15,14 +24,16 @@ export function useCopilot() {
   useEffect(() => {
     const init = async () => {
       try {
-        const rawInbox = localStorage.getItem(INBOX_KEY);
         const rawLatest = localStorage.getItem(LATEST_KEY);
-        if (rawInbox) setInbox(JSON.parse(rawInbox));
         if (rawLatest) setLatestResult(JSON.parse(rawLatest));
 
         setLoading(true);
-        const firestoreHistory = await fetchHistory();
+        const [firestoreHistory, firestoreInbox] = await Promise.all([
+          fetchHistory(),
+          user ? fetchInbox(user.uid) : Promise.resolve([] as InboxItem[]),
+        ]);
         setHistory(firestoreHistory);
+        setInbox(firestoreInbox);
       } catch (e) {
         console.error("Failed to hydrate copilot state", e);
       } finally {
@@ -31,25 +42,52 @@ export function useCopilot() {
       }
     };
     init();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(INBOX_KEY, JSON.stringify(inbox));
     localStorage.setItem(LATEST_KEY, JSON.stringify(latestResult));
-  }, [inbox, latestResult, hydrated]);
+  }, [latestResult, hydrated]);
 
-  const addToInbox = useCallback((text: string) => {
-    const newItem: InboxItem = {
-      id: Math.random().toString(36).substring(2, 9),
-      text,
-      timestamp: new Date().toISOString(),
-    };
-    setInbox((prev) => [newItem, ...prev]);
+  const addToInbox = useCallback(
+    async (text: string) => {
+      if (!user) throw new Error("Not signed in");
+      const id = await addInboxItem(user.uid, text);
+      const newItem: InboxItem = {
+        id,
+        text,
+        timestamp: new Date().toISOString(),
+        status: "pending",
+      };
+      setInbox((prev) => [newItem, ...prev]);
+      return id;
+    },
+    [user]
+  );
+
+  const removeFromInbox = useCallback(async (id: string) => {
+    await deleteInboxItem(id);
+    setInbox((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
-  const removeFromInbox = useCallback((id: string) => {
-    setInbox((prev) => prev.filter((item) => item.id !== id));
+  const editInboxItem = useCallback(async (id: string, text: string) => {
+    await updateInboxItemText(id, text);
+    setInbox((prev) => prev.map((item) => (item.id === id ? { ...item, text } : item)));
+  }, []);
+
+  const setInboxStatus = useCallback(async (id: string, status: InboxStatus) => {
+    await setInboxItemStatus(id, status);
+    setInbox((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status,
+              ...(status === "processed" ? { processedAt: new Date().toISOString() } : {}),
+            }
+          : item
+      )
+    );
   }, []);
 
   const saveToHistory = useCallback(
@@ -90,6 +128,8 @@ export function useCopilot() {
     latestResult,
     addToInbox,
     removeFromInbox,
+    editInboxItem,
+    setInboxStatus,
     saveToHistory,
     clearHistory,
     refreshHistory,
