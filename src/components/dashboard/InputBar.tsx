@@ -1,7 +1,8 @@
 import { useRef } from "react";
-import { Sparkles, Loader2, Mail, Upload } from "lucide-react";
+import { Sparkles, Loader2, Mail, Upload, Slack } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface InputBarProps {
   value: string;
@@ -23,7 +24,16 @@ BUG-1418 (P2) — Dashboard slow load (>5s) after morning deploy
 TASK-902 — Q2 roadmap deck for partner review
 SUPP-330 — Acme onboarding blocked, multiple admins can't invite users`;
 
-export const InputBar = ({ value, onChange, onAnalyze, loading }: InputBarProps) => {
+const SLACK_SAMPLE = `[#ops-critical] 🚨 ALERT: Error rate spikes in checkout service. 15% of sessions failing.
+[#product-feedback] User 'jake_123' says the new onboarding flow is confusing. "Too many steps!"
+[#general] @here reminder to update your Q3 OKRs in the sheet by Friday.`;
+
+export const InputBar = ({
+  value,
+  onChange,
+  onAnalyze,
+  loading,
+}: InputBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const appendToInput = (text: string) => {
@@ -39,6 +49,11 @@ export const InputBar = ({ value, onChange, onAnalyze, loading }: InputBarProps)
   const handleJira = () => {
     appendToInput(JIRA_SAMPLE);
     toast.success("Imported sample Jira issues");
+  };
+
+  const handleSlack = () => {
+    appendToInput(SLACK_SAMPLE);
+    toast.success("Imported sample Slack messages");
   };
 
   const handleUpload = () => {
@@ -83,6 +98,11 @@ export const InputBar = ({ value, onChange, onAnalyze, loading }: InputBarProps)
           <div className="flex flex-wrap items-center gap-1.5">
             <SourceChip onClick={handleEmail} icon={<Mail className="h-3.5 w-3.5" />} label="Email" />
             <SourceChip onClick={handleJira} icon={<JiraIcon />} label="Jira" />
+            <SourceChip
+              onClick={handleSlack}
+              icon={<Slack className="h-3.5 w-3.5" />}
+              label="Slack"
+            />
             <SourceChip onClick={handleUpload} icon={<Upload className="h-3.5 w-3.5" />} label="Upload" />
             <input
               ref={fileInputRef}
@@ -116,19 +136,31 @@ export const InputBar = ({ value, onChange, onAnalyze, loading }: InputBarProps)
   );
 };
 
-const SourceChip = ({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) => (
+const SourceChip = ({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) => (
   <button
     type="button"
     onClick={onClick}
-    className="inline-flex items-center gap-1.5 px-2 h-7 rounded border border-border bg-card hover:bg-muted text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+    className={cn(
+      "inline-flex items-center gap-1.5 px-2 h-7 rounded border border-border bg-card hover:bg-muted text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+    )}
   >
     <span>{icon}</span>
     {label}
   </button>
 );
 
+
 const JiraIcon = () => (
   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor">
-    <path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.005-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.762a1.005 1.005 0 0 0-1.001-1.005zM23.013 0H11.455a5.215 5.215 0 0 0 5.215 5.215h2.129v2.057A5.215 5.215 0 0 0 24 12.483V1.005A1.005 1.005 0 0 0 23.013 0z"/>
+    <path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.005-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.762a1.005 1.005 0 0 0-1.001-1.005zM23.013 0H11.455a5.215 5.215 0 0 0 5.215 5.215h2.129v2.057A5.215 5.215 0 0 0 24 12.483V1.005A1.005 1.005 0 0 0 23.013 0z" />
   </svg>
 );
+
