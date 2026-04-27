@@ -112,11 +112,42 @@ export const RightRail = ({
       if (!response.ok) {
         throw new Error(data.details || data.error || data.message || `Error ${response.status}`);
       }
-      toast.success("Jira ticket created", {
-        id: toastId,
-        description: `${data.issueKey} is now live.`,
-        action: { label: "Open", onClick: () => window.open(data.issueUrl, "_blank") },
-      });
+
+      // Jira success, now trigger Slack
+      let slackSuccess = false;
+      try {
+        const slackResponse = await fetch("/api/slack/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: mainTask.task,
+            priority: mainTask.impact,
+            issueKey: data.issueKey,
+            assignee: `${mainTask.category} Team`,
+            description: mainTask.reasoning,
+          }),
+        });
+        slackSuccess = slackResponse.ok;
+      } catch (e) {
+        console.error("Slack notification failed:", e);
+      }
+
+      if (slackSuccess) {
+        toast.success("Jira created and Slack notified successfully", {
+          id: toastId,
+          description: `${data.issueKey} is now live.`,
+          action: { label: "Open", onClick: () => window.open(data.issueUrl, "_blank") },
+        });
+      } else {
+        toast.success("Jira ticket created", {
+          id: toastId,
+          description: `${data.issueKey} is live, but Slack notification failed.`,
+          action: { label: "Open", onClick: () => window.open(data.issueUrl, "_blank") },
+        });
+        toast.warning("Slack notification failed", {
+          description: "Check SLACK_WEBHOOK_URL in .env.local",
+        });
+      }
     } catch (error: any) {
       toast.error("Jira export failed", { id: toastId, description: error.message });
     }

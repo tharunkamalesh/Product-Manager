@@ -36,6 +36,7 @@ const Index = () => {
       setResult(res);
       ingestResult(res);
       await saveToHistory(res, text);
+
       if (inboxIds && inboxIds.length) {
         await Promise.all(inboxIds.map((id) => setInboxStatus(id, "processed").catch(() => {})));
       }
