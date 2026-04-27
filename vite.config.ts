@@ -57,6 +57,65 @@ function apiDevPlugin(env: Record<string, string>) {
           });
         }
       );
+
+      // Handle /api/jira/users (GET) — assignable users for the configured project
+      server.middlewares.use(
+        "/api/jira/users",
+        async (req: IncomingMessage, res: ServerResponse, next: Connect.NextFunction) => {
+          if (req.method !== "GET") return next();
+          try {
+            let domain = (env.JIRA_DOMAIN || "").trim();
+            domain = domain
+              .replace(/^https?:\/\//, "")
+              .replace(/\.atlassian\.net\/?$/, "")
+              .replace(/\/$/, "");
+            const email = (env.JIRA_EMAIL || "").trim();
+            const token = (env.JIRA_API_TOKEN || "").trim();
+            const projectKey = (env.JIRA_PROJECT_KEY || "KAN").trim();
+
+            if (!domain || !email || !token) {
+              res.setHeader("Content-Type", "application/json");
+              res.statusCode = 500;
+              res.end(JSON.stringify({ error: "Jira credentials missing" }));
+              return;
+            }
+
+            const auth = Buffer.from(`${email}:${token}`).toString("base64");
+            const upstream = await fetch(
+              `https://${domain}.atlassian.net/rest/api/3/user/assignable/search?project=${projectKey}`,
+              {
+                method: "GET",
+                headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
+              }
+            );
+
+            if (!upstream.ok) {
+              const detail = await upstream.text();
+              res.setHeader("Content-Type", "application/json");
+              res.statusCode = upstream.status;
+              res.end(JSON.stringify({ error: "Jira API Error", details: detail }));
+              return;
+            }
+
+            const users = (await upstream.json()) as any[];
+            const simplified = users
+              .filter((u: any) => u.accountType === "atlassian")
+              .map((u: any) => ({
+                accountId: u.accountId,
+                displayName: u.displayName,
+                avatarUrl: u.avatarUrls?.["32x32"] || u.avatarUrls?.["48x48"],
+              }));
+
+            res.setHeader("Content-Type", "application/json");
+            res.statusCode = 200;
+            res.end(JSON.stringify(simplified));
+          } catch (e: any) {
+            res.setHeader("Content-Type", "application/json");
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: "Server Error", details: e.message }));
+          }
+        }
+      );
     },
   };
 }
