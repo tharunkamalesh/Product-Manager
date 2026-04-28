@@ -15,6 +15,8 @@ export interface UserProfile {
   name: string;
   email: string;
   companyName: string;
+  companyId: string;
+  role: 'admin' | 'member';
   createdAt?: any;
 }
 
@@ -63,11 +65,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signup = async (name: string, email: string, password: string, companyName: string) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: name });
+    
+    // Generate a simple companyId from company name
+    const companyId = companyName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 7);
+    
     const userProfile: UserProfile = {
       uid: cred.user.uid,
       name,
       email,
       companyName,
+      companyId,
+      role: 'admin',
       createdAt: serverTimestamp(),
     };
     await setDoc(doc(db, "users", cred.user.uid), userProfile);

@@ -1,33 +1,48 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "GET") {
-    res.setHeader("Allow", "GET");
+  if (req.method !== "GET" && req.method !== "POST") {
+    res.setHeader("Allow", "GET, POST");
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const domain = process.env.JIRA_DOMAIN;
-  const email = process.env.JIRA_EMAIL;
-  const token = process.env.JIRA_API_TOKEN;
-  const projectKey = process.env.JIRA_PROJECT_KEY || "KAN";
+  // Allow passing credentials for verification during setup
+  const { 
+    domain: qDomain, 
+    email: qEmail, 
+    token: qToken, 
+    projectKey: qProjectKey,
+    accessToken,
+    cloudId,
+    type
+  } = req.method === "POST" ? req.body : req.query;
 
-  if (!domain || !email || !token) {
+  const domain = qDomain || process.env.JIRA_DOMAIN;
+  const email = qEmail || process.env.JIRA_EMAIL;
+  const token = qToken || process.env.JIRA_API_TOKEN;
+  const projectKey = qProjectKey || process.env.JIRA_PROJECT_KEY || "KAN";
+
+  let url = `https://${domain}.atlassian.net/rest/api/3/user/assignable/search?project=${projectKey}`;
+  let headers: any = {
+    "Accept": "application/json",
+  };
+
+  if (type === "oauth" && accessToken && cloudId) {
+    url = `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/user/assignable/search?project=${projectKey}`;
+    headers["Authorization"] = `Bearer ${accessToken}`;
+  } else if (domain && email && token) {
+    const auth = Buffer.from(`${email}:${token}`).toString("base64");
+    headers["Authorization"] = `Basic ${auth}`;
+  } else {
     return res.status(500).json({ error: "Jira credentials missing" });
   }
 
   try {
-    const auth = Buffer.from(`${email}:${token}`).toString("base64");
     // Fetch users who can be assigned to issues in the project
-    const response = await fetch(
-      `https://${domain}.atlassian.net/rest/api/3/user/assignable/search?project=${projectKey}`,
-      {
-        method: "GET",
-        headers: {
-          "Authorization": `Basic ${auth}`,
-          "Accept": "application/json",
-        },
-      }
-    );
+    const response = await fetch(url, {
+      method: "GET",
+      headers: headers
+    });
 
     if (!response.ok) {
       const errorText = await response.text();

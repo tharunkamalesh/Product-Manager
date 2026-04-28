@@ -146,3 +146,48 @@ export const fetchSettings = async (): Promise<Memory | null> => {
     return null;
   }
 };
+
+// Company Specific Settings
+export const saveCompanySettings = async (companyId: string, settings: any) => {
+  try {
+    await setDoc(doc(db, "companies", companyId, "settings", "integrations"), {
+      ...settings,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error saving company settings:", error);
+    throw error;
+  }
+};
+
+export const fetchCompanySettings = async (companyId: string) => {
+  try {
+    const snap = await getDoc(doc(db, "companies", companyId, "settings", "integrations"));
+    return snap.exists() ? snap.data() : null;
+  } catch (error) {
+    console.error("Error fetching company settings:", error);
+    return null;
+  }
+};
+
+export const saveTeamMapping = async (companyId: string, mapping: any) => {
+  try {
+    await setDoc(doc(db, "companies", companyId, "settings", "team_mapping"), {
+      mapping,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error saving team mapping:", error);
+    throw error;
+  }
+};
+
+export const fetchTeamMapping = async (companyId: string) => {
+  try {
+    const snap = await getDoc(doc(db, "companies", companyId, "settings", "team_mapping"));
+    return snap.exists() ? snap.data().mapping : {};
+  } catch (error) {
+    console.error("Error fetching team mapping:", error);
+    return {};
+  }
+};

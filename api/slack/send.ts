@@ -6,14 +6,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
-  if (!webhookUrl) {
-    return res.status(500).json({ error: "SLACK_WEBHOOK_URL not configured in environment" });
-  }
+  const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+  const { title, priority, issueKey, assignee, description, webhookUrl: customWebhookUrl } = body;
 
-  try {
-    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-    const { title, priority, issueKey, assignee, description } = body;
+  const webhookUrl = customWebhookUrl || process.env.SLACK_WEBHOOK_URL;
+  if (!webhookUrl) {
+    return res.status(500).json({ error: "Slack webhook URL not configured" });
+  }
 
     const slackMessage = {
       text: "🚨 New PM Task Created",

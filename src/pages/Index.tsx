@@ -9,11 +9,14 @@ import { RightRail } from "@/components/dashboard/RightRail";
 import { useMemory } from "@/hooks/useMemory";
 import { useCopilot } from "@/hooks/useCopilot";
 import { analyzeInput } from "@/lib/analyzer";
+import { processIntegrations } from "@/lib/integrations";
 import type { AnalysisResult, Priority } from "@/types/copilot";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const location = useLocation();
+  const { profile } = useAuth();
   const { memory, setGoal, setUseMemoryToggle, ingestResult, clearMemory } = useMemory();
   const { latestResult, saveToHistory, setInboxStatus } = useCopilot();
 
@@ -41,6 +44,20 @@ const Index = () => {
         await Promise.all(inboxIds.map((id) => setInboxStatus(id, "processed").catch(() => {})));
       }
       toast.success("Analysis complete");
+
+      // Trigger integrations for the top priority
+      if (profile?.companyId && res.topPriorities.length > 0) {
+        const topTask = res.topPriorities[0];
+        // Find the matching step in action plan for description
+        const step = res.actionPlan.find(s => s.task.includes(topTask.task)) || res.actionPlan[0];
+        
+        processIntegrations(profile.companyId, {
+          title: topTask.task,
+          description: step ? `${step.nextStep}\n\nReasoning: ${topTask.reasoning}` : topTask.reasoning,
+          priority: topTask.impact,
+          category: topTask.category || "Other"
+        });
+      }
     } catch (e) {
       toast.error("Something went wrong. Try again.");
     } finally {

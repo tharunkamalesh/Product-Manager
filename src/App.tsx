@@ -13,7 +13,7 @@ import Inbox from "./pages/Inbox";
 import Priorities from "./pages/Priorities";
 import ActionPlan from "./pages/ActionPlan";
 import Calendar from "./pages/Calendar";
-import Integrations from "./pages/Integrations";
+import Integrations from "./pages/IntegrationsSetup";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
