@@ -1,16 +1,25 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log("[Jira Connect] OAuth route hit", req.query);
+  
   const clientId = process.env.JIRA_CLIENT_ID;
   const redirectUri = process.env.JIRA_REDIRECT_URI;
   const companyId = req.query.companyId as string;
 
-  if (!clientId || !redirectUri) {
-    return res.status(500).json({ error: "Jira OAuth credentials not configured" });
+  if (!clientId || clientId === "jira-client-id") {
+    console.error("[Jira Connect] Missing or placeholder JIRA_CLIENT_ID");
+    return res.redirect("/integrations?error=OAuth configuration missing. Please check environment variables (JIRA_CLIENT_ID).");
+  }
+  
+  if (!redirectUri) {
+    console.error("[Jira Connect] Missing JIRA_REDIRECT_URI");
+    return res.redirect("/integrations?error=OAuth configuration missing. Please check environment variables (JIRA_REDIRECT_URI).");
   }
 
   if (!companyId) {
-    return res.status(400).json({ error: "companyId is required" });
+    console.error("[Jira Connect] Missing companyId");
+    return res.redirect("/integrations?error=companyId is required");
   }
 
   // Define the scopes required
@@ -20,13 +29,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     "write:jira-work",
     "manage:jira-project",
     "manage:jira-configuration",
-    "offline_access" // Important for refresh tokens
+    "offline_access"
   ].join(" ");
 
-  // State should include companyId so we can store tokens for the right company in the callback
+  // State should include companyId
   const state = encodeURIComponent(JSON.stringify({ companyId }));
 
   const authUrl = `https://auth.atlassian.com/authorize?audience=api.atlassian.com&client_id=${clientId}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&response_type=code&prompt=consent`;
 
+  console.log("[Jira Connect] Redirect URL generated", { redirectUri, companyId });
+  console.log("[Jira Connect] Redirecting to Atlassian...");
   return res.redirect(authUrl);
 }

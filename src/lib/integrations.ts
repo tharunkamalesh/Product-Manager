@@ -18,15 +18,29 @@ export async function processIntegrations(companyId: string, task: IntegrationTa
     }
 
     const { jira, slack } = settings;
-    
-    // 2. Fetch Team Mapping
+
+    // 2. Fetch Team Mapping — mapping stores { Category: accountId }
     const mapping = await fetchTeamMapping(companyId);
-    const assigneeId = mapping ? mapping[task.category] : null;
+    const assigneeId: string | null = mapping?.[task.category] || null;
+
+    // 3. Try to resolve assignee display name from Jira users
+    let assigneeName = "Unassigned";
+    if (assigneeId && jira && (jira.accessToken || jira.domain)) {
+      try {
+        const usersResp = await fetch(`/api/jira/users?companyId=${companyId}`);
+        if (usersResp.ok) {
+          const users = await usersResp.json();
+          const found = users.find((u: any) => u.accountId === assigneeId);
+          if (found) assigneeName = found.displayName;
+        }
+      } catch (e) {
+        console.warn("[processIntegrations] Could not resolve assignee name:", e);
+      }
+    }
 
     let jiraKey = "";
-    let assigneeName = "Unassigned";
 
-    // 3. Create Jira Issue
+    // 4. Create Jira Issue
     if (jira && (jira.accessToken || (jira.domain && jira.apiToken))) {
       try {
         const jiraPayload: any = {
@@ -34,7 +48,7 @@ export async function processIntegrations(companyId: string, task: IntegrationTa
           title: task.title,
           description: task.description,
           priority: task.priority,
-          assigneeId: assigneeId,
+          assigneeId: assigneeId || undefined,
         };
 
         if (jira.type === "oauth") {
@@ -57,10 +71,10 @@ export async function processIntegrations(companyId: string, task: IntegrationTa
         if (jiraResponse.ok) {
           const jiraData = await jiraResponse.json();
           jiraKey = jiraData.key;
-          toast.success(`Jira ticket created: ${jiraKey}`);
-          
-          // Try to get assignee name if we have users fetched (optimization)
-          // For now we'll just use the ID or generic
+          const assignedMsg = assigneeName !== "Unassigned"
+            ? ` → assigned to ${assigneeName}`
+            : " (Unassigned)";
+          toast.success(`Jira ticket created: ${jiraKey}${assignedMsg}`);
         } else {
           const err = await jiraResponse.json();
           console.error("Jira Integration Error:", err);
@@ -71,7 +85,7 @@ export async function processIntegrations(companyId: string, task: IntegrationTa
       }
     }
 
-    // 4. Send Slack Notification
+    // 5. Send Slack Notification
     if (slack && (slack.webhookUrl || slack.accessToken)) {
       try {
         await fetch("/api/slack/send", {
@@ -81,11 +95,12 @@ export async function processIntegrations(companyId: string, task: IntegrationTa
             title: task.title,
             priority: task.priority,
             issueKey: jiraKey,
-            assignee: task.category + (assigneeId ? ` Lead` : ""),
+            assignee: assigneeName,
+            category: task.category,
             description: task.description,
             webhookUrl: slack.webhookUrl,
             accessToken: slack.accessToken,
-            type: slack.type
+            type: slack.type,
           }),
         });
         toast.success("Slack notification sent");
@@ -93,8 +108,8 @@ export async function processIntegrations(companyId: string, task: IntegrationTa
         console.error("Slack Integration Error:", e);
       }
     }
-
   } catch (error) {
     console.error("Integration Workflow Error:", error);
   }
 }
+

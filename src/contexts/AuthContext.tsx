@@ -27,6 +27,8 @@ interface AuthContextType {
   signup: (name: string, email: string, password: string, companyName: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Always returns a usable companyId — from profile if loaded, derived from user email otherwise. */
+  getCompanyId: () => string | null;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -42,6 +44,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Derive a stable companyId from an email address
+  // e.g. pm@tcs.com → "tcs", founder@startup.io → "startup"
+  const deriveCompanyId = (email: string): string => {
+    const domain = email.split("@")[1] || email;
+    // Strip common public email suffixes; use full domain otherwise
+    const publicDomains = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com", "protonmail.com"];
+    const isPublic = publicDomains.includes(domain.toLowerCase());
+    if (isPublic) {
+      // Fall back to sanitized email prefix for public domains
+      return email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "-");
+    }
+    // Use the first segment of the domain (e.g. tcs from tcs.com)
+    return domain.split(".")[0].toLowerCase().replace(/[^a-z0-9]/g, "-");
+  };
+
   // Fetch Firestore profile whenever user changes
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -49,7 +66,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(firebaseUser);
         if (firebaseUser) {
           const snap = await getDoc(doc(db, "users", firebaseUser.uid));
-          setProfile(snap.exists() ? (snap.data() as UserProfile) : null);
+          if (snap.exists()) {
+            setProfile(snap.data() as UserProfile);
+          } else {
+            // Auto-create profile for users who signed in without going through signup
+            // (e.g. existing users, users added manually, or future OAuth providers)
+            const email = firebaseUser.email || "";
+            const companyId = deriveCompanyId(email);
+            const companyName = companyId.charAt(0).toUpperCase() + companyId.slice(1);
+            const autoProfile: UserProfile = {
+              uid: firebaseUser.uid,
+              name: firebaseUser.displayName || email.split("@")[0],
+              email,
+              companyId,
+              companyName,
+              role: "admin",
+              createdAt: serverTimestamp(),
+            };
+            await setDoc(doc(db, "users", firebaseUser.uid), autoProfile);
+            console.log("[AuthContext] Auto-created user profile", { uid: firebaseUser.uid, companyId });
+            setProfile(autoProfile);
+          }
         } else {
           setProfile(null);
         }
@@ -103,8 +140,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const getCompanyId = (): string | null => {
+    // Prefer the persisted profile value
+    if (profile?.companyId) return profile.companyId;
+    // Fall back to deriving from the firebase user email (same algorithm as auto-profile)
+    const email = user?.email;
+    if (!email) return null;
+    return deriveCompanyId(email);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signup, login, logout }}>
+    <AuthContext.Provider value={{ user, profile, loading, signup, login, logout, getCompanyId }}>
       {children}
     </AuthContext.Provider>
   );
