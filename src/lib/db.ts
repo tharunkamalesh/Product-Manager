@@ -14,7 +14,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import type { AnalysisResult, HistorySession, InboxItem, Memory } from "@/types/copilot";
+import type { AnalysisResult, HistorySession, InboxItem, Memory, Verdict } from "@/types/copilot";
 
 const ANALYSES_COLLECTION = "analyses";
 const INBOX_COLLECTION = "inbox";
@@ -189,5 +189,26 @@ export const fetchTeamMapping = async (companyId: string) => {
   } catch (error) {
     console.error("Error fetching team mapping:", error);
     return {};
+  }
+};
+
+export const saveVerdicts = async (verdicts: Verdict[]) => {
+  try {
+    await setDoc(doc(db, "settings", "verdicts"), {
+      verdicts,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error saving verdicts:", error);
+  }
+};
+
+export const fetchVerdicts = async (): Promise<Verdict[]> => {
+  try {
+    const snap = await getDoc(doc(db, "settings", "verdicts"));
+    return snap.exists() ? (snap.data().verdicts as Verdict[]) : [];
+  } catch (error) {
+    console.error("Error fetching verdicts:", error);
+    return [];
   }
 };

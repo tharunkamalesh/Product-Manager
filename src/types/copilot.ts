@@ -16,6 +16,8 @@ export interface Priority {
   dueDate?: string;
   source?: "Jira" | "Slack" | "Email" | "Other";
   status?: "Open" | "In Progress" | "Closed";
+  predictionId?: string;
+  confidence?: number;
 }
 
 export interface ActionStep {
@@ -57,5 +59,30 @@ export interface Memory {
   patterns: string[];
   ignoredTasks: string[];
   useMemoryToggle?: boolean;
+  verdicts?: Verdict[];
+  calibration?: CalibrationStats;
+}
+
+export type VerdictType =
+  | "right"
+  | "wrong_urgency"
+  | "wrong_size"
+  | "wrong_impact"
+  | "memory_miss"
+  | "noise_call";
+
+export interface Verdict {
+  predictionId: string;
+  sessionId: string;
+  task: string;
+  verdict: VerdictType;
+  delta?: string;
+  evidence: string[];
+  reconciledAt: string;
+  modelNote: string;
+}
+
+export interface CalibrationStats {
+  [bucket: string]: { hits: number; misses: number };
 }
 

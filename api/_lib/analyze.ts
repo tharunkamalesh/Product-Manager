@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { AnalysisResult, Memory } from "../../src/types/copilot";
+import { buildCalibrationNote } from "./reconcile";
 
 const SYSTEM = `You are a Senior Product Manager with 10+ years of experience at high-growth startups and scaled products. You think in outcomes, not outputs. You have strong opinions, make hard calls, and never give generic advice.
 
@@ -38,10 +39,14 @@ You receive raw daily input from a founder or PM (Slack threads, emails, Jira ti
 - Never fabricate urgency. Never inflate impact to seem helpful.
 - Never recommend more than 3 top priorities, even if the input is long.
 - Never write a next step that requires a meeting to define the next step.
-  
+
 **On categorization:**
 - Assign each priority to a category: 'Frontend', 'Backend', 'Payment', 'DevOps', 'Mobile', or 'Other'.
-- Use the input signal to decide: UI/UX/CSS/React = Frontend; API/DB/Auth/Logic = Backend; Stripe/Checkout/Refunds = Payment; Deploy/Infra/AWS = DevOps; iOS/Android/React Native = Mobile.`;
+- Use the input signal to decide: UI/UX/CSS/React = Frontend; API/DB/Auth/Logic = Backend; Stripe/Checkout/Refunds = Payment; Deploy/Infra/AWS = DevOps; iOS/Android/React Native = Mobile.
+
+**On confidence:**
+- Return a confidence score (0.0–1.0) per priority. Only give >0.8 if you would stake your track record on it.
+- When self-calibration context is provided, use it — lower confidence on categories where you have a history of misses.`;
 
 const PRIORITY_LEVEL = {
   type: Type.STRING,
@@ -57,18 +62,32 @@ const RESPONSE_SCHEMA = {
       maxItems: 3,
       items: {
         type: Type.OBJECT,
-        required: ["task", "impact", "urgency", "effort", "category", "reasoning", "memoryInfluence"],
+        required: [
+          "task",
+          "impact",
+          "urgency",
+          "effort",
+          "category",
+          "reasoning",
+          "memoryInfluence",
+          "confidence",
+        ],
         properties: {
           task: { type: Type.STRING },
           impact: PRIORITY_LEVEL,
           urgency: PRIORITY_LEVEL,
           effort: PRIORITY_LEVEL,
-          category: { 
-            type: Type.STRING, 
-            enum: ["Frontend", "Backend", "Payment", "DevOps", "Mobile", "Other"] 
+          category: {
+            type: Type.STRING,
+            enum: ["Frontend", "Backend", "Payment", "DevOps", "Mobile", "Other"],
           },
           reasoning: { type: Type.STRING },
           memoryInfluence: { type: Type.STRING },
+          confidence: {
+            type: Type.NUMBER,
+            description:
+              "0.0 to 1.0. Only give >0.8 if you'd stake your track record on it.",
+          },
         },
       },
     },
@@ -110,17 +129,22 @@ export async function analyze(
 
   const ai = new GoogleGenAI({ apiKey });
 
-  const memoryBlock = useMemory && memory
-    ? `Memory context:
+  const memoryBlock =
+    useMemory && memory
+      ? `Memory context:
 - Goal: ${memory.userProfile?.goal || "(not set)"}
 - Recurring patterns: ${memory.patterns?.join(", ") || "(none yet)"}
 - Past priorities: ${memory.pastPriorities?.slice(0, 5).join(" | ") || "(none yet)"}
 - Frequently ignored: ${memory.ignoredTasks?.slice(0, 5).join(" | ") || "(none yet)"}`
-    : "Memory disabled — analyze without prior context.";
+      : "Memory disabled — analyze without prior context.";
+
+  const calibrationNote = buildCalibrationNote(memory?.verdicts || []);
+
+  const contents = `${calibrationNote ? calibrationNote + "\n\n" : ""}${memoryBlock}\n\nInput to analyze:\n${input}`;
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
-    contents: `${memoryBlock}\n\nInput to analyze:\n${input}`,
+    contents,
     config: {
       systemInstruction: SYSTEM,
       responseMimeType: "application/json",

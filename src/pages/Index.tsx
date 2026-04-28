@@ -10,6 +10,7 @@ import { useMemory } from "@/hooks/useMemory";
 import { useCopilot } from "@/hooks/useCopilot";
 import { analyzeInput } from "@/lib/analyzer";
 import { processIntegrations } from "@/lib/integrations";
+import { reconcileSessions } from "@/lib/reconcile";
 import type { AnalysisResult, Priority } from "@/types/copilot";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,8 +18,8 @@ import { useAuth } from "@/contexts/AuthContext";
 const Index = () => {
   const location = useLocation();
   const { profile } = useAuth();
-  const { memory, setGoal, setUseMemoryToggle, ingestResult, clearMemory } = useMemory();
-  const { latestResult, saveToHistory, setInboxStatus } = useCopilot();
+  const { memory, setGoal, setUseMemoryToggle, ingestResult, ingestVerdicts, clearMemory } = useMemory();
+  const { latestResult, history, saveToHistory, setInboxStatus } = useCopilot();
 
   const [input, setInput] = useState("");
   const [result, setResult] = useState<AnalysisResult | null>(latestResult);
@@ -39,6 +40,8 @@ const Index = () => {
       setResult(res);
       ingestResult(res);
       await saveToHistory(res, text);
+      const verdicts = reconcileSessions(history);
+      ingestVerdicts(verdicts);
 
       if (inboxIds && inboxIds.length) {
         await Promise.all(inboxIds.map((id) => setInboxStatus(id, "processed").catch(() => {})));

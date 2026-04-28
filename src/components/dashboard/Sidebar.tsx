@@ -2,17 +2,9 @@ import { useEffect, useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
-  Inbox,
-  Flame,
-  ListChecks,
-  Calendar,
   Plug,
-  History,
   Settings,
-  HelpCircle,
   LogOut,
-  Users,
-  Compass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OnboardingGuide } from "./OnboardingGuide";
@@ -29,16 +21,10 @@ type NavItem = {
 
 const NAV_PRIMARY: NavItem[] = [
   { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { id: "inbox", icon: Inbox, label: "Inbox", path: "/inbox" },
-  { id: "priorities", icon: Flame, label: "Priorities", path: "/priorities" },
-  { id: "action-plan", icon: ListChecks, label: "Action plan", path: "/action-plan" },
-  { id: "calendar", icon: Calendar, label: "Calendar", path: "/calendar" },
-  { id: "history", icon: History, label: "History", path: "/history" },
 ];
 
 const NAV_SECONDARY: NavItem[] = [
   { id: "integrations", icon: Plug, label: "Integrations", path: "/integrations" },
-  { id: "team-setup", icon: Users, label: "Team setup", path: "/team-setup" },
   { id: "settings", icon: Settings, label: "Settings", path: "/settings" },
 ];
 
@@ -46,12 +32,7 @@ export const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, logout } = useAuth();
-  const { inbox } = useCopilot();
   const [pendingCount, setPendingCount] = useState(0);
-
-  useEffect(() => {
-    setPendingCount(inbox.filter((i) => i.status === "pending").length);
-  }, [inbox]);
 
   const handleLogout = async () => {
     try {
@@ -131,7 +112,7 @@ export const Sidebar = () => {
         <div>
           <OnboardingGuide>
             <button className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded text-[13px] font-medium text-sidebar-foreground/80 hover:bg-muted hover:text-sidebar-foreground transition-colors">
-              <HelpCircle className="h-[15px] w-[15px] text-muted-foreground" />
+              <Settings className="h-[15px] w-[15px] text-muted-foreground" />
               Help & guide
             </button>
           </OnboardingGuide>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import type { AnalysisResult, Memory } from "@/types/copilot";
+import type { AnalysisResult, Memory, Verdict } from "@/types/copilot";
 import { extractPatterns } from "@/lib/analyzer";
-import { fetchSettings, saveSettings } from "@/lib/db";
+import { fetchSettings, saveSettings, saveVerdicts } from "@/lib/db";
 
 const STORAGE_KEY = "pm-daily-copilot:memory:v1";
 
@@ -11,6 +11,8 @@ const defaultMemory: Memory = {
   patterns: [],
   ignoredTasks: [],
   useMemoryToggle: true,
+  verdicts: [],
+  calibration: {},
 };
 
 export function useMemory() {
@@ -22,7 +24,7 @@ export function useMemory() {
       try {
         const firestoreSettings = await fetchSettings();
         if (firestoreSettings) {
-          setMemory(firestoreSettings);
+          setMemory({ ...defaultMemory, ...firestoreSettings });
         } else {
           const raw = localStorage.getItem(STORAGE_KEY);
           if (raw) setMemory({ ...defaultMemory, ...JSON.parse(raw) });
@@ -66,9 +68,28 @@ export function useMemory() {
     });
   }, []);
 
+  const ingestVerdicts = useCallback((newVerdicts: Verdict[]) => {
+    setMemory((m) => {
+      const existing = m.verdicts || [];
+      const existingIds = new Set(existing.map((v) => v.predictionId));
+      const fresh = newVerdicts.filter((v) => !existingIds.has(v.predictionId));
+      const merged = [...existing, ...fresh].slice(-200);
+      const calibration: Record<string, { hits: number; misses: number }> = {};
+      for (const v of merged) {
+        const key = v.verdict === "right" ? "hit" : "miss";
+        if (!calibration[key]) calibration[key] = { hits: 0, misses: 0 };
+        if (v.verdict === "right") calibration[key].hits++;
+        else calibration[key].misses++;
+      }
+      const updated = { ...m, verdicts: merged, calibration };
+      saveVerdicts(merged);
+      return updated;
+    });
+  }, []);
+
   const clearMemory = useCallback(() => {
     setMemory(defaultMemory);
   }, []);
 
-  return { memory, setGoal, setUseMemoryToggle, ingestResult, clearMemory, hydrated };
+  return { memory, setGoal, setUseMemoryToggle, ingestResult, ingestVerdicts, clearMemory, hydrated };
 }

@@ -9,18 +9,11 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { Loader2 } from "lucide-react";
 
 import Index from "./pages/Index";
-import Inbox from "./pages/Inbox";
-import Priorities from "./pages/Priorities";
-import ActionPlan from "./pages/ActionPlan";
-import Calendar from "./pages/Calendar";
 import Integrations from "./pages/IntegrationsSetup";
-import History from "./pages/History";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-import Insights from "./pages/Insights";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import TeamSetup from "./pages/TeamSetup";
 
 const queryClient = new QueryClient();
 
@@ -44,15 +37,8 @@ const App = () => (
 
               {/* Protected routes */}
               <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/inbox" element={<ProtectedRoute><Inbox /></ProtectedRoute>} />
-              <Route path="/priorities" element={<ProtectedRoute><Priorities /></ProtectedRoute>} />
-              <Route path="/action-plan" element={<ProtectedRoute><ActionPlan /></ProtectedRoute>} />
-              <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
               <Route path="/integrations" element={<ProtectedRoute><Integrations /></ProtectedRoute>} />
-              <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-              <Route path="/team-setup" element={<ProtectedRoute><TeamSetup /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-              <Route path="/insights" element={<ProtectedRoute><Insights /></ProtectedRoute>} />
               
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />

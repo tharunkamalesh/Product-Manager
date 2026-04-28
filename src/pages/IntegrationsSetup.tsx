@@ -3,7 +3,7 @@ import { TopBar } from "@/components/dashboard/TopBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Briefcase, MessageSquare, Calendar as CalendarIcon, CheckCircle2, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
+import { Briefcase, MessageSquare, CheckCircle2, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { fetchCompanySettings } from "@/lib/db";
@@ -213,25 +213,7 @@ const IntegrationsSetup = () => {
               </CardContent>
             </Card>
 
-            {/* Google Calendar (Coming Soon) */}
-            <Card className="border-border shadow-sm flex flex-col opacity-60">
-              <CardHeader>
-                <div className="flex items-center gap-3 mb-1">
-                  <div className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center">
-                    <CalendarIcon className="h-4 w-4 text-red-500" />
-                  </div>
-                  <CardTitle className="text-lg text-muted-foreground">Google Calendar</CardTitle>
-                </div>
-                <CardDescription>
-                  Sync your priorities to your calendar.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col justify-end pt-4">
-                <Button variant="outline" className="w-full cursor-not-allowed" disabled>
-                  Coming Soon
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Google Calendar removed (Coming Soon) */}
           </div>
 
           {/* Info callout */}

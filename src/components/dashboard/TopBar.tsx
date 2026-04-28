@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import {
   Bell,
-  Search,
   ChevronDown,
   LogOut,
   User,
@@ -37,15 +36,8 @@ const NOTIFICATIONS = [
 const PATH_LABELS: Record<string, string> = {
   "/": "Dashboard",
   "/dashboard": "Dashboard",
-  "/inbox": "Inbox",
-  "/priorities": "Priorities",
-  "/action-plan": "Action plan",
-  "/calendar": "Calendar",
   "/integrations": "Integrations",
-  "/team-setup": "Team setup",
-  "/history": "History",
   "/settings": "Settings",
-  "/insights": "Insights",
 };
 
 export const TopBar = () => {
@@ -53,7 +45,6 @@ export const TopBar = () => {
   const { profile, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [query, setQuery] = useState("");
   const [unread, setUnread] = useState(NOTIFICATIONS.filter((n) => n.unread).length);
 
   const handleLogout = async () => {
@@ -70,26 +61,6 @@ export const TopBar = () => {
   const initials = profile?.name
     ? profile.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "?";
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        const input = document.getElementById("global-search") as HTMLInputElement | null;
-        input?.focus();
-        input?.select();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
-
-  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== "Enter" || !query.trim()) return;
-    toast.message(`Searching for "${query.trim()}"`, {
-      description: "Global search is coming soon.",
-    });
-  };
 
   const handleMarkAllRead = () => {
     setUnread(0);
@@ -117,24 +88,9 @@ export const TopBar = () => {
         )}
       </nav>
 
-      {/* Search */}
-      <div className="ml-auto flex items-center gap-1">
-        <div className="relative w-72 hidden md:block">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <input
-            id="global-search"
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleSearch}
-            placeholder="Search"
-            className="w-full h-8 pl-8 pr-12 rounded border border-border bg-card focus:bg-card focus:border-primary/60 text-[13px] placeholder:text-muted-foreground/70 outline-none transition-colors"
-          />
-          <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-muted-foreground bg-muted border border-border px-1 py-0.5 rounded-sm">
-            ⌘K
-          </kbd>
-        </div>
+      {/* Search - Removed (Coming Soon) */}
 
+      <div className="ml-auto flex items-center gap-1">
         {/* Theme toggle */}
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
