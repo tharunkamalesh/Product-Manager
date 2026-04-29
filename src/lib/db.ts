@@ -256,15 +256,19 @@ export const fetchTeamMapping = async (companyId: string) => {
 
 export const saveTeamMembers = async (companyId: string, members: any[]) => {
   try {
-    // Sanitize to avoid Firestore 'undefined' errors
+    // Ensure parent company document exists so Firestore doesn't show "This document does not exist"
+    await setDoc(doc(db, "companies", companyId), { updatedAt: serverTimestamp() }, { merge: true });
+
+    // Sanitize to avoid Firestore 'undefined' errors and match requested schema
     const safeMembers = members.map(m => ({
       accountId: m.accountId || "",
-      displayName: m.displayName || "Unknown",
-      avatarUrl: m.avatarUrl || ""
+      name: m.displayName || m.name || "Unknown",
+      email: m.emailAddress || m.email || "",
+      avatarUrl: m.avatarUrl || m.avatar || ""
     }));
 
     await setDoc(doc(db, "companies", companyId, "settings", "team_members"), {
-      members: safeMembers,
+      team_members: safeMembers, // Save as team_members array
       updatedAt: serverTimestamp(),
     }, { merge: true });
   } catch (error) {
@@ -276,7 +280,16 @@ export const saveTeamMembers = async (companyId: string, members: any[]) => {
 export const fetchTeamMembers = async (companyId: string) => {
   try {
     const snap = await getDoc(doc(db, "companies", companyId, "settings", "team_members"));
-    return snap.exists() ? snap.data().members : [];
+    if (snap.exists()) {
+      const data = snap.data();
+      // Handle both new 'team_members' key and legacy 'members' key
+      const membersArray = data.team_members || data.members || [];
+      return membersArray.map((m: any) => ({
+        ...m,
+        displayName: m.displayName || m.name // Ensure backward compatibility for the UI
+      }));
+    }
+    return [];
   } catch (error) {
     console.error("Error fetching team members:", error);
     return [];

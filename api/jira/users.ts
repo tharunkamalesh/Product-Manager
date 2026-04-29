@@ -130,6 +130,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .map((u: any) => ({
         accountId: u.accountId,
         displayName: u.displayName,
+        emailAddress: u.emailAddress || "",
         avatarUrl: u.avatarUrls?.["32x32"] || u.avatarUrls?.["48x48"] || "",
       }));
 
