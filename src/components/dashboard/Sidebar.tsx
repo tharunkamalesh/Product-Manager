@@ -5,6 +5,7 @@ import {
   Plug,
   Settings,
   LogOut,
+  Compass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OnboardingGuide } from "./OnboardingGuide";

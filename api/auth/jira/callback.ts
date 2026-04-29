@@ -9,9 +9,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const redirectUri = process.env.JIRA_REDIRECT_URI;
 
   if (!code || !state) {
-    console.error("[Jira Callback] Missing code or state");
+    console.error("[Jira Callback] Missing code or state", { code: !!code, state: !!state });
     return res.status(400).json({ error: "Missing code or state" });
   }
+  console.log("[Jira Callback] Received code:", code);
 
   let companyId: string;
   try {
@@ -40,9 +41,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const tokenData = await tokenResponse.json();
     if (!tokenResponse.ok) {
-      console.error("[Jira Callback] Token exchange failed", tokenData);
+      console.error("[Jira Callback] Token exchange failed. Status:", tokenResponse.status);
+      console.error("[Jira Callback] Atlassian Error Response:", tokenData);
       throw new Error(tokenData.error_description || tokenData.error || "Failed to exchange code");
     }
+    console.log("[Jira Callback] Token exchange successful. Scopes:", tokenData.scope);
 
     const { access_token, refresh_token } = tokenData;
     console.log("[Jira Callback] Token exchange successful");
@@ -57,9 +60,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     const resources = await resourceResponse.json();
-    if (!resourceResponse.ok || !resources.length) {
-      console.error("[Jira Callback] Failed to fetch resources", resources);
-      throw new Error("Failed to fetch accessible resources");
+    if (!resourceResponse.ok || !resources || !resources.length) {
+      console.error("[Jira Callback] Failed to fetch resources. Status:", resourceResponse.status);
+      console.error("[Jira Callback] Resource response data:", resources);
+      throw new Error(`Failed to fetch accessible resources: ${JSON.stringify(resources)}`);
     }
 
     const cloudId = resources[0].id;

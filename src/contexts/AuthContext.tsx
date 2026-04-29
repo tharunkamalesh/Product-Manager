@@ -5,6 +5,8 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
+  setPersistence,
+  browserSessionPersistence,
   User,
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
@@ -61,7 +63,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Fetch Firestore profile whenever user changes
   useEffect(() => {
+    const initPersistence = async () => {
+      try {
+        await setPersistence(auth, browserSessionPersistence);
+        console.log("[AuthContext] Persistence set to SESSION on startup.");
+      } catch (err) {
+        console.error("[AuthContext] Failed to set persistence on startup:", err);
+      }
+    };
+    initPersistence();
+
+    console.log("[AuthContext] Initializing auth listener...");
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log("[AuthContext] AUTH USER:", firebaseUser ? `${firebaseUser.email} (UID: ${firebaseUser.uid})` : "No active session");
       try {
         setUser(firebaseUser);
         if (firebaseUser) {
@@ -100,6 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signup = async (name: string, email: string, password: string, companyName: string) => {
+    await setPersistence(auth, browserSessionPersistence);
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: name });
     
@@ -120,22 +135,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const login = async (email: string, password: string) => {
+    await setPersistence(auth, browserSessionPersistence);
     await signInWithEmailAndPassword(auth, email, password);
   };
 
   const logout = async () => {
+    console.log("[AuthContext] Logging out...");
     try {
       // 1. Clear local state immediately
       setUser(null);
       setProfile(null);
       // 2. Call Firebase signOut
       await signOut(auth);
-      // 3. Clear any potential persistent storage manually as a safety measure
+      // 3. HARD CLEAR: Clear ALL local and session storage
       if (typeof window !== "undefined") {
-        localStorage.removeItem(`firebase:authUser:${auth.config.apiKey}:[DEFAULT]`);
+        localStorage.clear();
+        sessionStorage.clear();
+        console.log("[AuthContext] All storage cleared.");
       }
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("[AuthContext] Logout error:", error);
       throw error;
     }
   };
