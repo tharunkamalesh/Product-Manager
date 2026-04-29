@@ -16,10 +16,6 @@ import {
 import { db } from "./firebase";
 import type { AnalysisResult, HistorySession, InboxItem, Memory, Verdict } from "@/types/copilot";
 
-const ANALYSES_COLLECTION = "analyses";
-const INBOX_COLLECTION = "inbox";
-const SETTINGS_DOC_ID = "user_settings";
-
 export interface FirestoreAnalysis {
   input: string;
   priority: "High" | "Medium" | "Low";
@@ -28,7 +24,12 @@ export interface FirestoreAnalysis {
   result: Omit<AnalysisResult, "id" | "timestamp">;
 }
 
-export const saveAnalysis = async (input: string, result: AnalysisResult) => {
+/**
+ * Saves an analysis result under the company's scope.
+ * Path: companies/{companyId}/analyses/{docId}
+ */
+export const saveAnalysis = async (companyId: string, input: string, result: AnalysisResult) => {
+  if (!companyId) return null;
   try {
     const data = {
       input,
@@ -42,17 +43,23 @@ export const saveAnalysis = async (input: string, result: AnalysisResult) => {
         actionPlan: result.actionPlan,
       },
     };
-    const docRef = await addDoc(collection(db, ANALYSES_COLLECTION), data);
+    const colRef = collection(db, "companies", companyId, "analyses");
+    const docRef = await addDoc(colRef, data);
     return docRef.id;
   } catch (error) {
-    console.error("Error saving analysis:", error);
+    console.error("[db] Error saving analysis:", error);
     throw error;
   }
 };
 
-export const fetchHistory = async (): Promise<HistorySession[]> => {
+/**
+ * Fetches analysis history for a company.
+ */
+export const fetchHistory = async (companyId: string): Promise<HistorySession[]> => {
+  if (!companyId) return [];
   try {
-    const q = query(collection(db, ANALYSES_COLLECTION), orderBy("createdAt", "desc"));
+    const colRef = collection(db, "companies", companyId, "analyses");
+    const q = query(colRef, orderBy("createdAt", "desc"));
     const snap = await getDocs(q);
     return snap.docs.map((d) => {
       const data = d.data();
@@ -67,27 +74,84 @@ export const fetchHistory = async (): Promise<HistorySession[]> => {
       };
     });
   } catch (error) {
-    console.error("Error fetching history:", error);
+    console.error("[db] Error fetching history:", error);
     return [];
   }
 };
 
-export const saveSettings = async (memory: Memory) => {
+/**
+ * Saves app memory/settings under the company's scope.
+ * Path: companies/{companyId}/settings/memory
+ */
+export const saveSettings = async (companyId: string, memory: Memory) => {
+  if (!companyId) return;
   try {
-    await setDoc(doc(db, "settings", SETTINGS_DOC_ID), {
+    const docRef = doc(db, "companies", companyId, "settings", "memory");
+    await setDoc(docRef, {
       ...memory,
       updatedAt: serverTimestamp(),
     });
   } catch (error) {
-    console.error("Error saving settings:", error);
+    console.error("[db] Error saving settings:", error);
   }
 };
 
-export const fetchInbox = async (userId: string): Promise<InboxItem[]> => {
+/**
+ * Fetches app memory/settings for a company.
+ */
+export const fetchSettings = async (companyId: string): Promise<Memory | null> => {
+  if (!companyId) return null;
   try {
-    const q = query(collection(db, INBOX_COLLECTION), where("userId", "==", userId));
+    const docRef = doc(db, "companies", companyId, "settings", "memory");
+    const snap = await getDoc(docRef);
+    return snap.exists() ? (snap.data() as Memory) : null;
+  } catch (error) {
+    console.error("[db] Error fetching settings:", error);
+    return null;
+  }
+};
+
+/**
+ * Saves AI verdicts under the company's scope.
+ */
+export const saveVerdicts = async (companyId: string, verdicts: Verdict[]) => {
+  if (!companyId) return;
+  try {
+    const docRef = doc(db, "companies", companyId, "settings", "verdicts");
+    await setDoc(docRef, {
+      verdicts,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("[db] Error saving verdicts:", error);
+  }
+};
+
+/**
+ * Fetches AI verdicts for a company.
+ */
+export const fetchVerdicts = async (companyId: string): Promise<Verdict[]> => {
+  if (!companyId) return [];
+  try {
+    const docRef = doc(db, "companies", companyId, "settings", "verdicts");
+    const snap = await getDoc(docRef);
+    return snap.exists() ? (snap.data().verdicts as Verdict[]) : [];
+  } catch (error) {
+    console.error("[db] Error fetching verdicts:", error);
+    return [];
+  }
+};
+
+/**
+ * Fetches company-wide inbox items.
+ */
+export const fetchInbox = async (companyId: string): Promise<InboxItem[]> => {
+  if (!companyId) return [];
+  try {
+    const colRef = collection(db, "companies", companyId, "inbox");
+    const q = query(colRef, orderBy("createdAt", "desc"));
     const snap = await getDocs(q);
-    const items = snap.docs.map((d) => {
+    return snap.docs.map((d) => {
       const data = d.data();
       const ts =
         (data.createdAt as Timestamp)?.toDate().toISOString() ||
@@ -102,16 +166,19 @@ export const fetchInbox = async (userId: string): Promise<InboxItem[]> => {
         ...(processedAt && { processedAt }),
       };
     });
-    return items.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
   } catch (error) {
-    console.error("Error fetching inbox:", error);
+    console.error("[db] Error fetching inbox:", error);
     return [];
   }
 };
 
-export const addInboxItem = async (userId: string, text: string): Promise<string> => {
-  const ref = await addDoc(collection(db, INBOX_COLLECTION), {
-    userId,
+/**
+ * Adds an item to the company-wide inbox.
+ */
+export const addInboxItem = async (companyId: string, text: string): Promise<string> => {
+  if (!companyId) throw new Error("companyId is required to add inbox item");
+  const colRef = collection(db, "companies", companyId, "inbox");
+  const ref = await addDoc(colRef, {
     text,
     status: "pending",
     createdAt: serverTimestamp(),
@@ -119,35 +186,30 @@ export const addInboxItem = async (userId: string, text: string): Promise<string
   return ref.id;
 };
 
-export const updateInboxItemText = async (id: string, text: string) => {
-  await updateDoc(doc(db, INBOX_COLLECTION, id), { text });
+export const updateInboxItemText = async (companyId: string, id: string, text: string) => {
+  const docRef = doc(db, "companies", companyId, "inbox", id);
+  await updateDoc(docRef, { text });
 };
 
 export const setInboxItemStatus = async (
+  companyId: string,
   id: string,
   status: InboxItem["status"]
 ) => {
-  await updateDoc(doc(db, INBOX_COLLECTION, id), {
+  const docRef = doc(db, "companies", companyId, "inbox", id);
+  await updateDoc(docRef, {
     status,
     ...(status === "processed" ? { processedAt: serverTimestamp() } : {}),
   });
 };
 
-export const deleteInboxItem = async (id: string) => {
-  await deleteDoc(doc(db, INBOX_COLLECTION, id));
+export const deleteInboxItem = async (companyId: string, id: string) => {
+  const docRef = doc(db, "companies", companyId, "inbox", id);
+  await deleteDoc(docRef);
 };
 
-export const fetchSettings = async (): Promise<Memory | null> => {
-  try {
-    const snap = await getDoc(doc(db, "settings", SETTINGS_DOC_ID));
-    return snap.exists() ? (snap.data() as Memory) : null;
-  } catch (error) {
-    console.error("Error fetching settings:", error);
-    return null;
-  }
-};
+// Integration & Team Mapping (Already Company Scoped)
 
-// Company Specific Settings
 export const saveCompanySettings = async (companyId: string, settings: any) => {
   try {
     await setDoc(doc(db, "companies", companyId, "settings", "integrations"), {
@@ -189,26 +251,5 @@ export const fetchTeamMapping = async (companyId: string) => {
   } catch (error) {
     console.error("Error fetching team mapping:", error);
     return {};
-  }
-};
-
-export const saveVerdicts = async (verdicts: Verdict[]) => {
-  try {
-    await setDoc(doc(db, "settings", "verdicts"), {
-      verdicts,
-      updatedAt: serverTimestamp(),
-    });
-  } catch (error) {
-    console.error("Error saving verdicts:", error);
-  }
-};
-
-export const fetchVerdicts = async (): Promise<Verdict[]> => {
-  try {
-    const snap = await getDoc(doc(db, "settings", "verdicts"));
-    return snap.exists() ? (snap.data().verdicts as Verdict[]) : [];
-  } catch (error) {
-    console.error("Error fetching verdicts:", error);
-    return [];
   }
 };

@@ -147,12 +147,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setProfile(null);
       // 2. Call Firebase signOut
       await signOut(auth);
-      // 3. HARD CLEAR: Clear ALL local and session storage
-      if (typeof window !== "undefined") {
-        localStorage.clear();
-        sessionStorage.clear();
-        console.log("[AuthContext] All storage cleared.");
-      }
+      console.log("[AuthContext] Signed out from Firebase.");
     } catch (error) {
       console.error("[AuthContext] Logout error:", error);
       throw error;

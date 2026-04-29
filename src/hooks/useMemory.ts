@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { AnalysisResult, Memory, Verdict } from "@/types/copilot";
 import { extractPatterns } from "@/lib/analyzer";
 import { fetchSettings, saveSettings, saveVerdicts } from "@/lib/db";
+import { useAuth } from "@/contexts/AuthContext";
 
 const STORAGE_KEY = "pm-daily-copilot:memory:v1";
 
@@ -16,37 +17,46 @@ const defaultMemory: Memory = {
 };
 
 export function useMemory() {
+  const { profile, getCompanyId } = useAuth();
   const [memory, setMemory] = useState<Memory>(defaultMemory);
   const [hydrated, setHydrated] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const companyId = getCompanyId();
 
   useEffect(() => {
+    if (!companyId) return;
+    
     const init = async () => {
+      setLoading(true);
       try {
-        const firestoreSettings = await fetchSettings();
+        console.log("[useMemory] Fetching settings for company:", companyId);
+        const firestoreSettings = await fetchSettings(companyId);
         if (firestoreSettings) {
           setMemory({ ...defaultMemory, ...firestoreSettings });
         } else {
-          const raw = localStorage.getItem(STORAGE_KEY);
+          const raw = localStorage.getItem(`${STORAGE_KEY}:${companyId}`);
           if (raw) setMemory({ ...defaultMemory, ...JSON.parse(raw) });
         }
-      } catch {
-        // fall back to defaults
+      } catch (e) {
+        console.error("[useMemory] Failed to hydrate memory", e);
       } finally {
         setHydrated(true);
+        setLoading(false);
       }
     };
     init();
-  }, []);
+  }, [companyId]);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || !companyId) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(memory));
-      saveSettings(memory);
+      localStorage.setItem(`${STORAGE_KEY}:${companyId}`, JSON.stringify(memory));
+      saveSettings(companyId, memory);
     } catch {
       // ignore
     }
-  }, [memory, hydrated]);
+  }, [memory, hydrated, companyId]);
 
   const setGoal = useCallback((goal: string) => {
     setMemory((m) => ({ ...m, userProfile: { goal } }));
@@ -69,6 +79,7 @@ export function useMemory() {
   }, []);
 
   const ingestVerdicts = useCallback((newVerdicts: Verdict[]) => {
+    if (!companyId) return;
     setMemory((m) => {
       const existing = m.verdicts || [];
       const existingIds = new Set(existing.map((v) => v.predictionId));
@@ -82,14 +93,14 @@ export function useMemory() {
         else calibration[key].misses++;
       }
       const updated = { ...m, verdicts: merged, calibration };
-      saveVerdicts(merged);
+      saveVerdicts(companyId, merged);
       return updated;
     });
-  }, []);
+  }, [companyId]);
 
   const clearMemory = useCallback(() => {
     setMemory(defaultMemory);
   }, []);
 
-  return { memory, setGoal, setUseMemoryToggle, ingestResult, ingestVerdicts, clearMemory, hydrated };
+  return { memory, setGoal, setUseMemoryToggle, ingestResult, ingestVerdicts, clearMemory, hydrated, loading };
 }

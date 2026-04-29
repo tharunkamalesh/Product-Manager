@@ -14,45 +14,55 @@ import { useAuth } from "@/contexts/AuthContext";
 const LATEST_KEY = "pm-daily-copilot:latest:v1";
 
 export function useCopilot() {
-  const { user } = useAuth();
+  const { getCompanyId } = useAuth();
   const [inbox, setInbox] = useState<InboxItem[]>([]);
   const [history, setHistory] = useState<HistorySession[]>([]);
   const [latestResult, setLatestResult] = useState<AnalysisResult | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const companyId = getCompanyId();
+
   useEffect(() => {
+    if (!companyId) return;
+
     const init = async () => {
       try {
-        const rawLatest = localStorage.getItem(LATEST_KEY);
+        const rawLatest = localStorage.getItem(`${LATEST_KEY}:${companyId}`);
         if (rawLatest) setLatestResult(JSON.parse(rawLatest));
 
         setLoading(true);
+        console.log("[useCopilot] Fetching history and inbox for company:", companyId);
         const [firestoreHistory, firestoreInbox] = await Promise.all([
-          fetchHistory(),
-          user ? fetchInbox(user.uid) : Promise.resolve([] as InboxItem[]),
+          fetchHistory(companyId),
+          fetchInbox(companyId),
         ]);
         setHistory(firestoreHistory);
         setInbox(firestoreInbox);
+        
+        // Use first history item as latest if none in localStorage
+        if (!rawLatest && firestoreHistory.length > 0) {
+          setLatestResult(firestoreHistory[0].result);
+        }
       } catch (e) {
-        console.error("Failed to hydrate copilot state", e);
+        console.error("[useCopilot] Failed to hydrate copilot state", e);
       } finally {
         setLoading(false);
         setHydrated(true);
       }
     };
     init();
-  }, [user]);
+  }, [companyId]);
 
   useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(LATEST_KEY, JSON.stringify(latestResult));
-  }, [latestResult, hydrated]);
+    if (!hydrated || !companyId) return;
+    localStorage.setItem(`${LATEST_KEY}:${companyId}`, JSON.stringify(latestResult));
+  }, [latestResult, hydrated, companyId]);
 
   const addToInbox = useCallback(
     async (text: string) => {
-      if (!user) throw new Error("Not signed in");
-      const id = await addInboxItem(user.uid, text);
+      if (!companyId) throw new Error("No company identified");
+      const id = await addInboxItem(companyId, text);
       const newItem: InboxItem = {
         id,
         text,
@@ -62,21 +72,24 @@ export function useCopilot() {
       setInbox((prev) => [newItem, ...prev]);
       return id;
     },
-    [user]
+    [companyId]
   );
 
   const removeFromInbox = useCallback(async (id: string) => {
-    await deleteInboxItem(id);
+    if (!companyId) return;
+    await deleteInboxItem(companyId, id);
     setInbox((prev) => prev.filter((item) => item.id !== id));
-  }, []);
+  }, [companyId]);
 
   const editInboxItem = useCallback(async (id: string, text: string) => {
-    await updateInboxItemText(id, text);
+    if (!companyId) return;
+    await updateInboxItemText(companyId, id, text);
     setInbox((prev) => prev.map((item) => (item.id === id ? { ...item, text } : item)));
-  }, []);
+  }, [companyId]);
 
   const setInboxStatus = useCallback(async (id: string, status: InboxStatus) => {
-    await setInboxItemStatus(id, status);
+    if (!companyId) return;
+    await setInboxItemStatus(companyId, id, status);
     setInbox((prev) =>
       prev.map((item) =>
         item.id === id
@@ -88,12 +101,13 @@ export function useCopilot() {
           : item
       )
     );
-  }, []);
+  }, [companyId]);
 
   const saveToHistory = useCallback(
     async (result: AnalysisResult, input: string) => {
+      if (!companyId) return;
       try {
-        const firestoreId = await saveAnalysis(input, result);
+        const firestoreId = await saveAnalysis(companyId, input, result);
         const session: HistorySession = {
           id: firestoreId || result.id,
           inputSummary: input.slice(0, 60) + (input.length > 60 ? "..." : ""),
@@ -104,10 +118,10 @@ export function useCopilot() {
         setHistory((prev) => [session, ...prev].slice(0, 50));
         setLatestResult(result);
       } catch (error) {
-        console.error("Failed to save to history:", error);
+        console.error("[useCopilot] Failed to save to history:", error);
       }
     },
-    []
+    [companyId]
   );
 
   const clearHistory = useCallback(() => {
@@ -116,11 +130,12 @@ export function useCopilot() {
   }, []);
 
   const refreshHistory = useCallback(async () => {
+    if (!companyId) return;
     setLoading(true);
-    const firestoreHistory = await fetchHistory();
+    const firestoreHistory = await fetchHistory(companyId);
     setHistory(firestoreHistory);
     setLoading(false);
-  }, []);
+  }, [companyId]);
 
   return {
     inbox,

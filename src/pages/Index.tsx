@@ -14,16 +14,19 @@ import { reconcileSessions } from "@/lib/reconcile";
 import type { AnalysisResult, Priority } from "@/types/copilot";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
 
 const Index = () => {
   const location = useLocation();
   const { profile } = useAuth();
-  const { memory, setGoal, setUseMemoryToggle, ingestResult, ingestVerdicts, clearMemory } = useMemory();
-  const { latestResult, history, saveToHistory, setInboxStatus } = useCopilot();
+  const { memory, setGoal, setUseMemoryToggle, ingestResult, ingestVerdicts, clearMemory, loading: memoryLoading } = useMemory();
+  const { latestResult, history, saveToHistory, setInboxStatus, loading: copilotLoading } = useCopilot();
 
   const [input, setInput] = useState("");
   const [result, setResult] = useState<AnalysisResult | null>(latestResult);
   const [loading, setLoading] = useState(false);
+
+  const isHydrating = memoryLoading || copilotLoading;
   const useMemoryToggle = memory.useMemoryToggle ?? true;
 
   // Sync with latest result if it changes (e.g. from history clear)
@@ -121,34 +124,43 @@ const Index = () => {
 
       <div className="flex-1 min-w-0">
         <TopBar />
-
-        <main className="px-5 py-5">
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
-            {/* Center column */}
-            <div className="xl:col-span-9 space-y-5 min-w-0">
-              <InputBar
-                value={input}
-                onChange={setInput}
-                onAnalyze={handleAnalyze}
-                loading={loading}
-              />
-              <PriorityBoard high={high} medium={medium} low={low} hasResult={!!result} />
-              <ActionPlanCard steps={result?.actionPlan ?? []} />
-            </div>
-
-            {/* Right rail */}
-            <div className="xl:col-span-3">
-              <RightRail
-                result={result}
-                memory={memory}
-                useMemory={useMemoryToggle}
-                onToggleUseMemory={setUseMemoryToggle}
-                onSetGoal={setGoal}
-                onClear={clearMemory}
-              />
+        
+        {isHydrating ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-xs text-muted-foreground animate-pulse">Syncing with workspace...</p>
             </div>
           </div>
-        </main>
+        ) : (
+          <main className="px-5 py-5">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+              {/* Center column */}
+              <div className="xl:col-span-9 space-y-5 min-w-0">
+                <InputBar
+                  value={input}
+                  onChange={setInput}
+                  onAnalyze={handleAnalyze}
+                  loading={loading}
+                />
+                <PriorityBoard high={high} medium={medium} low={low} hasResult={!!result} />
+                <ActionPlanCard steps={result?.actionPlan ?? []} />
+              </div>
+
+              {/* Right rail */}
+              <div className="xl:col-span-3">
+                <RightRail
+                  result={result}
+                  memory={memory}
+                  useMemory={useMemoryToggle}
+                  onToggleUseMemory={setUseMemoryToggle}
+                  onSetGoal={setGoal}
+                  onClear={clearMemory}
+                />
+              </div>
+            </div>
+          </main>
+        )}
       </div>
     </div>
   );
