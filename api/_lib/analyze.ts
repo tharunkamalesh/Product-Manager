@@ -41,8 +41,8 @@ You receive raw daily input from a founder or PM (Slack threads, emails, Jira ti
 - Never write a next step that requires a meeting to define the next step.
 
 **On categorization:**
-- Assign each priority to a category: 'Frontend', 'Backend', 'Payment', 'DevOps', 'Mobile', or 'Other'.
-- Use the input signal to decide: UI/UX/CSS/React = Frontend; API/DB/Auth/Logic = Backend; Stripe/Checkout/Refunds = Payment; Deploy/Infra/AWS = DevOps; iOS/Android/React Native = Mobile.
+- Assign each priority to a category: 'Frontend', 'Backend', 'Payment', 'DevOps', 'Mobile', 'QA', or 'Other'.
+- Use the input signal to decide: UI/UX/CSS/React = Frontend; API/DB/Auth/Logic = Backend; Stripe/Checkout/Refunds = Payment; Deploy/Infra/AWS = DevOps; iOS/Android/React Native = Mobile; Testing/QA/Bugs/Validation = QA.
 
 **On confidence:**
 - Return a confidence score (0.0–1.0) per priority. Only give >0.8 if you would stake your track record on it.
@@ -79,7 +79,7 @@ const RESPONSE_SCHEMA = {
           effort: PRIORITY_LEVEL,
           category: {
             type: Type.STRING,
-            enum: ["Frontend", "Backend", "Payment", "DevOps", "Mobile", "Other"],
+            enum: ["Frontend", "Backend", "Payment", "DevOps", "Mobile", "QA", "Other"],
           },
           reasoning: { type: Type.STRING },
           memoryInfluence: { type: Type.STRING },

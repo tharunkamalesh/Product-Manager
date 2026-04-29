@@ -95,7 +95,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     };
 
-    console.log("[create-issue] Creating Jira issue", { projectKey, assigneeId, title });
+    console.log("[create-issue] Creating Jira issue:", {
+      title: (title || "").slice(0, 60),
+      projectKey,
+      assigneeId: assigneeId || "NONE (unassigned)",
+      priority,
+    });
+
+    if (assigneeId) {
+      console.log("[create-issue] ✅ Assigning to accountId:", assigneeId);
+    } else {
+      console.log("[create-issue] ⚠️ No assigneeId provided — issue will be unassigned.");
+    }
 
     const response = await fetch(url, {
       method: "POST",

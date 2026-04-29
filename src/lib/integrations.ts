@@ -8,22 +8,60 @@ interface IntegrationTask {
   category: string;
 }
 
+/**
+ * Resolves the accountId for a given category from the team mapping.
+ * Tries exact match first, then case-insensitive match.
+ */
+function resolveAssigneeId(
+  mapping: Record<string, string>,
+  category: string
+): string | null {
+  if (!mapping || !category) return null;
+
+  // 1. Exact match
+  if (mapping[category] && mapping[category] !== "" && mapping[category] !== "none") {
+    console.log(`[Integration] ✅ Exact match: category="${category}" → accountId="${mapping[category]}"`);
+    return mapping[category];
+  }
+
+  // 2. Case-insensitive match
+  const lowerCategory = category.toLowerCase();
+  const matchingKey = Object.keys(mapping).find(
+    (k) => k.toLowerCase() === lowerCategory
+  );
+  if (matchingKey && mapping[matchingKey] && mapping[matchingKey] !== "" && mapping[matchingKey] !== "none") {
+    console.log(`[Integration] ✅ Case-insensitive match: category="${category}" matched key="${matchingKey}" → accountId="${mapping[matchingKey]}"`);
+    return mapping[matchingKey];
+  }
+
+  // 3. No match
+  console.warn(`[Integration] ⚠️ No mapping found for category="${category}". Available keys: ${Object.keys(mapping).join(", ")}`);
+  return null;
+}
+
 export async function processIntegrations(companyId: string, task: IntegrationTask) {
   try {
+    console.log("[Integration] Starting for companyId:", companyId, "task:", task.title, "category:", task.category);
+
     // 1. Fetch Company Settings
     const settings = await fetchCompanySettings(companyId);
     if (!settings) {
-      console.log("No integrations configured for this company.");
+      console.log("[Integration] No integrations configured for this company.");
       return;
     }
 
     const { jira, slack } = settings;
+    console.log("[Integration] Jira config present:", !!jira, "Slack config present:", !!slack);
 
-    // 2. Fetch Team Mapping — mapping stores { Category: accountId }
+    // 2. Fetch Team Mapping
     const mapping = await fetchTeamMapping(companyId);
-    const assigneeId: string | null = mapping?.[task.category] || null;
+    console.log("[Integration] Team mapping loaded:", JSON.stringify(mapping));
 
-    // 3. Try to resolve assignee display name from Jira users
+    // 3. Resolve assignee accountId
+    const assigneeId = resolveAssigneeId(mapping || {}, task.category);
+    console.log("[Integration] Resolved assigneeId:", assigneeId);
+
+    // 4. Resolve assignee display name
     let assigneeName = "Unassigned";
     if (assigneeId && jira && (jira.accessToken || jira.domain)) {
       try {
@@ -31,16 +69,19 @@ export async function processIntegrations(companyId: string, task: IntegrationTa
         if (usersResp.ok) {
           const users = await usersResp.json();
           const found = users.find((u: any) => u.accountId === assigneeId);
-          if (found) assigneeName = found.displayName;
+          if (found) {
+            assigneeName = found.displayName;
+            console.log("[Integration] Resolved assignee name:", assigneeName);
+          }
         }
       } catch (e) {
-        console.warn("[processIntegrations] Could not resolve assignee name:", e);
+        console.warn("[Integration] Could not resolve assignee name:", e);
       }
     }
 
     let jiraKey = "";
 
-    // 4. Create Jira Issue
+    // 5. Create Jira Issue
     if (jira && (jira.accessToken || (jira.domain && jira.apiToken))) {
       try {
         const jiraPayload: any = {
@@ -48,10 +89,17 @@ export async function processIntegrations(companyId: string, task: IntegrationTa
           title: task.title,
           description: task.description,
           priority: task.priority,
-          assigneeId: assigneeId || undefined,
         };
 
-        if (jira.type === "oauth") {
+        // Only include assigneeId if it's a valid non-empty string
+        if (assigneeId && assigneeId.trim() !== "" && assigneeId !== "none") {
+          jiraPayload.assigneeId = assigneeId;
+          console.log("[Integration] Sending assigneeId to Jira:", assigneeId);
+        } else {
+          console.log("[Integration] No assignee — creating unassigned Jira ticket.");
+        }
+
+        if (jira.type === "oauth" || jira.accessToken) {
           jiraPayload.accessToken = jira.accessToken;
           jiraPayload.cloudId = jira.cloudId;
           jiraPayload.type = "oauth";
@@ -62,6 +110,12 @@ export async function processIntegrations(companyId: string, task: IntegrationTa
           jiraPayload.projectKey = jira.projectKey;
         }
 
+        console.log("[Integration] Calling /api/jira/create-issue with payload:", JSON.stringify({
+          ...jiraPayload,
+          token: jiraPayload.token ? "[REDACTED]" : undefined,
+          accessToken: jiraPayload.accessToken ? "[REDACTED]" : undefined,
+        }));
+
         const jiraResponse = await fetch("/api/jira/create-issue", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -71,21 +125,24 @@ export async function processIntegrations(companyId: string, task: IntegrationTa
         if (jiraResponse.ok) {
           const jiraData = await jiraResponse.json();
           jiraKey = jiraData.key;
+          console.log("[Integration] ✅ Jira issue created:", jiraKey, "assignee:", assigneeName);
           const assignedMsg = assigneeName !== "Unassigned"
             ? ` → assigned to ${assigneeName}`
             : " (Unassigned)";
           toast.success(`Jira ticket created: ${jiraKey}${assignedMsg}`);
         } else {
-          const err = await jiraResponse.json();
-          console.error("Jira Integration Error:", err);
+          const err = await jiraResponse.json().catch(() => ({}));
+          console.error("[Integration] ❌ Jira API error:", jiraResponse.status, err);
           toast.error("Failed to create Jira ticket");
         }
       } catch (e) {
-        console.error("Jira Integration Fetch Error:", e);
+        console.error("[Integration] ❌ Jira fetch error:", e);
       }
+    } else {
+      console.log("[Integration] Jira not configured — skipping ticket creation.");
     }
 
-    // 5. Send Slack Notification
+    // 6. Send Slack Notification
     if (slack && (slack.webhookUrl || slack.accessToken)) {
       try {
         await fetch("/api/slack/send", {
@@ -105,11 +162,10 @@ export async function processIntegrations(companyId: string, task: IntegrationTa
         });
         toast.success("Slack notification sent");
       } catch (e) {
-        console.error("Slack Integration Error:", e);
+        console.error("[Integration] Slack error:", e);
       }
     }
   } catch (error) {
-    console.error("Integration Workflow Error:", error);
+    console.error("[Integration] ❌ Workflow error:", error);
   }
 }
-
