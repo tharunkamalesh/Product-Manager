@@ -142,31 +142,47 @@ export async function analyze(
 
   const contents = `${calibrationNote ? calibrationNote + "\n\n" : ""}${memoryBlock}\n\nInput to analyze:\n${input}`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-1.5-flash",
-    contents,
-    config: {
-      systemInstruction: SYSTEM,
-      responseMimeType: "application/json",
-      responseSchema: RESPONSE_SCHEMA,
-    },
-  });
-
-  const text = response.text;
-  if (!text) {
-    throw new Error("AI returned an empty response");
-  }
-
-  let data: Omit<AnalysisResult, "id" | "timestamp">;
+  console.log("[Analyze] Requesting Gemini with model: gemini-2.0-flash");
   try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error("AI returned malformed JSON");
-  }
+    const response = await ai.models.generateContent({
+      model: "gemini-flash-latest",
+      contents,
+      config: {
+        systemInstruction: SYSTEM,
+        responseMimeType: "application/json",
+        responseSchema: RESPONSE_SCHEMA,
+      },
+    });
 
-  return {
-    id: Math.random().toString(36).slice(2, 9),
-    timestamp: new Date().toISOString(),
-    ...data,
-  };
+    console.log("[Analyze] Gemini response received");
+    const text = response.text;
+    
+    if (!text) {
+      console.error("[Analyze] Empty text in response:", JSON.stringify(response));
+      throw new Error("AI returned an empty response");
+    }
+    
+    console.log("[Analyze] Raw AI output:", text.slice(0, 100) + "...");
+
+    let data: Omit<AnalysisResult, "id" | "timestamp">;
+    try {
+      data = JSON.parse(text);
+      console.log("[Analyze] Successfully parsed JSON");
+    } catch (err) {
+      console.error("[Analyze] JSON Parse Error. Text was:", text);
+      throw new Error("AI returned malformed JSON");
+    }
+
+    return {
+      id: Math.random().toString(36).slice(2, 9),
+      timestamp: new Date().toISOString(),
+      ...data,
+    };
+  } catch (error: any) {
+    console.error("[Analyze] Critical Error:", error.message);
+    if (error.response) {
+      console.error("[Analyze] Gemini Error Details:", JSON.stringify(error.response, null, 2));
+    }
+    throw error;
+  }
 }
