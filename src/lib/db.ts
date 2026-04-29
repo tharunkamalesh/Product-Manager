@@ -256,10 +256,17 @@ export const fetchTeamMapping = async (companyId: string) => {
 
 export const saveTeamMembers = async (companyId: string, members: any[]) => {
   try {
+    // Sanitize to avoid Firestore 'undefined' errors
+    const safeMembers = members.map(m => ({
+      accountId: m.accountId || "",
+      displayName: m.displayName || "Unknown",
+      avatarUrl: m.avatarUrl || ""
+    }));
+
     await setDoc(doc(db, "companies", companyId, "settings", "team_members"), {
-      members,
+      members: safeMembers,
       updatedAt: serverTimestamp(),
-    });
+    }, { merge: true });
   } catch (error) {
     console.error("Error saving team members:", error);
     throw error;

@@ -103,26 +103,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (assigneeId) {
-      console.log("[create-issue] ✅ Assigning to accountId:", assigneeId);
+      console.log("[create-issue] ✅ Attempting to assign to accountId:", assigneeId);
     } else {
       console.log("[create-issue] ⚠️ No assigneeId provided — issue will be unassigned.");
     }
 
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       method: "POST",
       headers,
       body: JSON.stringify(jiraIssue),
     });
 
+    let fallbackUsed = false;
+    // Fallback: If assignee is invalid, Jira returns 400. We can retry without assignee.
+    if (!response.ok && assigneeId) {
+      const errorText = await response.text();
+      console.warn("[create-issue] ⚠️ Jira API error with assignee:", response.status, errorText);
+      console.log("[create-issue] 🔄 Retrying issue creation without assignee...");
+      
+      delete jiraIssue.fields.assignee;
+      fallbackUsed = true;
+      response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(jiraIssue),
+      });
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[create-issue] Jira API error:", response.status, errorText);
+      console.error("[create-issue] ❌ Jira API error (final):", response.status, errorText);
       return res.status(response.status).json({ error: "Jira API Error", details: errorText });
     }
 
     const result = await response.json();
     console.log("[create-issue] Issue created:", result.key);
-    return res.status(200).json(result);
+    return res.status(200).json({ ...result, fallbackUnassigned: fallbackUsed });
   } catch (error: any) {
     console.error("[create-issue] Server error:", error.message);
     return res.status(500).json({ error: "Server Error", details: error.message });

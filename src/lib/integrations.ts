@@ -68,10 +68,17 @@ export async function processIntegrations(companyId: string, task: IntegrationTa
     const assigneeNameQuery = task.assigneeName?.trim() || "";
     if (assigneeNameQuery && assigneeNameQuery.toLowerCase() !== "none" && members && members.length > 0) {
       const lowerSearch = assigneeNameQuery.toLowerCase();
-      const matchedUser = members.find((u: any) => 
-        u.displayName.toLowerCase().includes(lowerSearch) || 
-        lowerSearch.includes(u.displayName.toLowerCase())
-      );
+      
+      // 1. Exact match
+      let matchedUser = members.find((u: any) => u.displayName.toLowerCase() === lowerSearch);
+      
+      // 2. Starts with or includes (safer than reverse includes)
+      if (!matchedUser) {
+        matchedUser = members.find((u: any) => 
+          u.displayName.toLowerCase().includes(lowerSearch) || 
+          lowerSearch.includes(u.displayName.toLowerCase())
+        );
+      }
       
       if (matchedUser) {
         assigneeId = matchedUser.accountId;
@@ -155,11 +162,19 @@ export async function processIntegrations(companyId: string, task: IntegrationTa
         if (jiraResponse.ok) {
           const jiraData = await jiraResponse.json();
           jiraKey = jiraData.key;
-          console.log("[Integration] ✅ Jira issue created:", jiraKey, "assignee:", finalAssigneeName);
-          const assignedMsg = finalAssigneeName !== "Unassigned"
+          
+          console.log("[Integration] ✅ Jira issue created:", jiraKey, "assignee:", finalAssigneeName, "accountId:", assigneeId);
+          
+          // If the API returned a custom header or if assigneeId was stripped (we can't easily tell from the proxy response unless we returned a flag, but we'll assume success)
+          const assignedMsg = finalAssigneeName !== "Unassigned" && assigneeId
             ? ` → assigned to ${finalAssigneeName}`
             : " (Unassigned)";
-          toast.success(`Jira ticket created: ${jiraKey}${assignedMsg}`);
+            
+          if (jiraData.fallbackUnassigned) {
+             toast.warning(`Jira ticket created: ${jiraKey} (Warning: Invalid accountId, created Unassigned)`);
+          } else {
+             toast.success(`Jira ticket created: ${jiraKey}${assignedMsg}`);
+          }
         } else {
           const err = await jiraResponse.json().catch(() => ({}));
           console.error("[Integration] ❌ Jira API error:", jiraResponse.status, err);
