@@ -6,6 +6,7 @@ import {
   Settings,
   LogOut,
   Compass,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OnboardingGuide } from "./OnboardingGuide";
@@ -26,6 +27,7 @@ const NAV_PRIMARY: NavItem[] = [
 
 const NAV_SECONDARY: NavItem[] = [
   { id: "integrations", icon: Plug, label: "Integrations", path: "/integrations" },
+  { id: "team-setup", icon: Users, label: "Team Setup", path: "/team-setup" },
   { id: "settings", icon: Settings, label: "Settings", path: "/settings" },
 ];
 

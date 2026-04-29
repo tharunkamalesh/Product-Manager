@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 import Index from "./pages/Index";
 import Integrations from "./pages/IntegrationsSetup";
 import Settings from "./pages/Settings";
+import TeamSetup from "./pages/TeamSetup";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -38,6 +39,7 @@ const App = () => (
               {/* Protected routes */}
               <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/integrations" element={<ProtectedRoute><Integrations /></ProtectedRoute>} />
+              <Route path="/team-setup" element={<ProtectedRoute><TeamSetup /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               
               {/* Catch-all */}
