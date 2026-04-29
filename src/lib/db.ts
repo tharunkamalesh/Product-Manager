@@ -256,10 +256,6 @@ export const fetchTeamMapping = async (companyId: string) => {
 
 export const saveTeamMembers = async (companyId: string, members: any[]) => {
   try {
-    // Ensure parent company document exists so Firestore doesn't show "This document does not exist"
-    await setDoc(doc(db, "companies", companyId), { updatedAt: serverTimestamp() }, { merge: true });
-
-    // Sanitize to avoid Firestore 'undefined' errors and match requested schema
     const safeMembers = members.map(m => ({
       accountId: m.accountId || "",
       name: m.displayName || m.name || "Unknown",
@@ -267,9 +263,11 @@ export const saveTeamMembers = async (companyId: string, members: any[]) => {
       avatarUrl: m.avatarUrl || m.avatar || ""
     }));
 
-    await setDoc(doc(db, "companies", companyId, "settings", "team_members"), {
-      team_members: safeMembers, // Save as team_members array
-      updatedAt: serverTimestamp(),
+    await setDoc(doc(db, "companies", companyId), { 
+      settings: {
+        team_members: safeMembers 
+      },
+      updatedAt: serverTimestamp() 
     }, { merge: true });
   } catch (error) {
     console.error("Error saving team members:", error);
@@ -279,14 +277,13 @@ export const saveTeamMembers = async (companyId: string, members: any[]) => {
 
 export const fetchTeamMembers = async (companyId: string) => {
   try {
-    const snap = await getDoc(doc(db, "companies", companyId, "settings", "team_members"));
+    const snap = await getDoc(doc(db, "companies", companyId));
     if (snap.exists()) {
       const data = snap.data();
-      // Handle both new 'team_members' key and legacy 'members' key
-      const membersArray = data.team_members || data.members || [];
+      const membersArray = data.settings?.team_members || [];
       return membersArray.map((m: any) => ({
         ...m,
-        displayName: m.displayName || m.name // Ensure backward compatibility for the UI
+        displayName: m.name || m.displayName // Ensure backward compatibility for the UI
       }));
     }
     return [];
