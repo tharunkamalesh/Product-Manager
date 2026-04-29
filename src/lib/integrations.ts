@@ -1,4 +1,4 @@
-import { fetchCompanySettings, fetchTeamMapping } from "./db";
+import { fetchCompanySettings, fetchTeamMapping, fetchTeamMembers } from "./db";
 import { toast } from "sonner";
 
 interface IntegrationTask {
@@ -6,6 +6,7 @@ interface IntegrationTask {
   description: string;
   priority: string;
   category: string;
+  assigneeName?: string;
 }
 
 /**
@@ -53,25 +54,54 @@ export async function processIntegrations(companyId: string, task: IntegrationTa
     const { jira, slack } = settings;
     console.log("[Integration] Jira config present:", !!jira, "Slack config present:", !!slack);
 
-    // 2. Fetch Team Mapping
+    // 2. Fetch Team Mapping & Members
     const mapping = await fetchTeamMapping(companyId);
+    const members = await fetchTeamMembers(companyId);
     console.log("[Integration] Team mapping loaded:", JSON.stringify(mapping));
+    console.log("[Integration] Team members loaded:", members.length);
 
     // 3. Resolve assignee accountId
-    const assigneeId = resolveAssigneeId(mapping || {}, task.category);
-    console.log("[Integration] Resolved assigneeId:", assigneeId);
+    let assigneeId: string | null = null;
+    let finalAssigneeName = "Unassigned";
 
-    // 4. Resolve assignee display name
-    let assigneeName = "Unassigned";
-    if (assigneeId && jira && (jira.accessToken || jira.domain)) {
+    // First try direct assignee name match from AI
+    const assigneeNameQuery = task.assigneeName?.trim() || "";
+    if (assigneeNameQuery && assigneeNameQuery.toLowerCase() !== "none" && members && members.length > 0) {
+      const lowerSearch = assigneeNameQuery.toLowerCase();
+      const matchedUser = members.find((u: any) => 
+        u.displayName.toLowerCase().includes(lowerSearch) || 
+        lowerSearch.includes(u.displayName.toLowerCase())
+      );
+      
+      if (matchedUser) {
+        assigneeId = matchedUser.accountId;
+        finalAssigneeName = matchedUser.displayName;
+        console.log(`[Integration] ✅ Direct assignment match: "${task.assigneeName}" → accountId="${assigneeId}" (${finalAssigneeName})`);
+      } else {
+        console.warn(`[Integration] ⚠️ Direct assignment "${task.assigneeName}" not found in members.`);
+      }
+    }
+
+    // Fallback to category mapping if no direct assignment
+    if (!assigneeId) {
+      assigneeId = resolveAssigneeId(mapping || {}, task.category);
+      if (assigneeId && members && members.length > 0) {
+        const found = members.find((u: any) => u.accountId === assigneeId);
+        if (found) finalAssigneeName = found.displayName;
+      }
+    }
+    console.log("[Integration] Final resolved assigneeId:", assigneeId);
+
+    // 4. Fallback lookup via Jira API (if members list didn't have it for some reason)
+    if (assigneeId && finalAssigneeName === "Unassigned" && jira && (jira.accessToken || jira.domain)) {
       try {
         const usersResp = await fetch(`/api/jira/users?companyId=${companyId}`);
         if (usersResp.ok) {
           const users = await usersResp.json();
           const found = users.find((u: any) => u.accountId === assigneeId);
           if (found) {
-            assigneeName = found.displayName;
-            console.log("[Integration] Resolved assignee name:", assigneeName);
+            finalAssigneeName = found.displayName;
+            console.log("[Integration] Resolved assignee name from API:", finalAssigneeName);
           }
         }
       } catch (e) {
@@ -125,9 +155,9 @@ export async function processIntegrations(companyId: string, task: IntegrationTa
         if (jiraResponse.ok) {
           const jiraData = await jiraResponse.json();
           jiraKey = jiraData.key;
-          console.log("[Integration] ✅ Jira issue created:", jiraKey, "assignee:", assigneeName);
-          const assignedMsg = assigneeName !== "Unassigned"
-            ? ` → assigned to ${assigneeName}`
+          console.log("[Integration] ✅ Jira issue created:", jiraKey, "assignee:", finalAssigneeName);
+          const assignedMsg = finalAssigneeName !== "Unassigned"
+            ? ` → assigned to ${finalAssigneeName}`
             : " (Unassigned)";
           toast.success(`Jira ticket created: ${jiraKey}${assignedMsg}`);
         } else {
@@ -152,7 +182,7 @@ export async function processIntegrations(companyId: string, task: IntegrationTa
             title: task.title,
             priority: task.priority,
             issueKey: jiraKey,
-            assignee: assigneeName,
+            assignee: finalAssigneeName,
             category: task.category,
             description: task.description,
             webhookUrl: slack.webhookUrl,

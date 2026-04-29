@@ -61,7 +61,8 @@ const Index = () => {
           title: topTask.task,
           description: step ? `${step.nextStep}\n\nReasoning: ${topTask.reasoning}` : topTask.reasoning,
           priority: topTask.impact,
-          category: topTask.category || "Other"
+          category: topTask.category || "Other",
+          assigneeName: topTask.assignee
         });
       }
     } catch (e) {

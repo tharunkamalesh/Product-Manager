@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Users, Save, RefreshCw, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
-import { saveTeamMapping, fetchTeamMapping, fetchCompanySettings } from "@/lib/db";
+import { saveTeamMapping, fetchTeamMapping, fetchCompanySettings, fetchTeamMembers, saveTeamMembers } from "@/lib/db";
 
 const CATEGORIES = [
   { key: "Frontend", label: "Frontend", color: "bg-blue-500/10 text-blue-600 border-blue-200" },
@@ -75,11 +75,11 @@ const TeamSetup = () => {
       }
 
       setJiraUsers(users || []);
+      await saveTeamMembers(companyId, users);
       setLastSynced(new Date().toLocaleTimeString());
       if (showToast) toast.success(`Developers synced from Jira (${(users || []).length} found)`);
     } catch (error: any) {
       console.error("[TeamSetup] fetchJiraUsers error:", error);
-      setJiraUsers([]);
       if (showToast) toast.error(error.message || "Failed to fetch Jira users.");
     } finally {
       setFetchingUsers(false);
@@ -89,13 +89,23 @@ const TeamSetup = () => {
   useEffect(() => {
     const companyId = getCompanyId();
     if (!companyId) return;
-    // Load saved mapping + fetch users in parallel
+
+    // Load saved mapping
     fetchTeamMapping(companyId).then((savedMapping) => {
       if (savedMapping && Object.keys(savedMapping).length > 0) {
         setMapping(savedMapping);
       }
     });
-    fetchJiraUsers(false);
+
+    // Load saved members or fetch from Jira if none exist
+    fetchTeamMembers(companyId).then((members) => {
+      if (members && members.length > 0) {
+        setJiraUsers(members);
+        setJiraConnected(true); // Since we have members, assume connected
+      } else {
+        fetchJiraUsers(false);
+      }
+    });
   }, [profile?.companyId, getCompanyId()]); // Include derived changes
 
   const handleSaveMapping = async () => {

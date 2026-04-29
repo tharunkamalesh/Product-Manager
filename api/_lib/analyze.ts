@@ -40,9 +40,10 @@ You receive raw daily input from a founder or PM (Slack threads, emails, Jira ti
 - Never recommend more than 3 top priorities, even if the input is long.
 - Never write a next step that requires a meeting to define the next step.
 
-**On categorization:**
+**On categorization and assignment:**
 - Assign each priority to a category: 'Frontend', 'Backend', 'Payment', 'DevOps', 'Mobile', 'QA', or 'Other'.
 - Use the input signal to decide: UI/UX/CSS/React = Frontend; API/DB/Auth/Logic = Backend; Stripe/Checkout/Refunds = Payment; Deploy/Infra/AWS = DevOps; iOS/Android/React Native = Mobile; Testing/QA/Bugs/Validation = QA.
+- If the input explicitly mentions a specific person to assign the task to (e.g., 'Assign to Tharun S', 'Have John fix this'), extract their name into the \`assignee\` field. If no person is mentioned, return an empty string "".
 
 **On confidence:**
 - Return a confidence score (0.0–1.0) per priority. Only give >0.8 if you would stake your track record on it.
@@ -68,6 +69,7 @@ const RESPONSE_SCHEMA = {
           "urgency",
           "effort",
           "category",
+          "assignee",
           "reasoning",
           "memoryInfluence",
           "confidence",
@@ -81,6 +83,7 @@ const RESPONSE_SCHEMA = {
             type: Type.STRING,
             enum: ["Frontend", "Backend", "Payment", "DevOps", "Mobile", "QA", "Other"],
           },
+          assignee: { type: Type.STRING, description: "Name of the person explicitly assigned to this task, if any." },
           reasoning: { type: Type.STRING },
           memoryInfluence: { type: Type.STRING },
           confidence: {

@@ -253,3 +253,26 @@ export const fetchTeamMapping = async (companyId: string) => {
     return {};
   }
 };
+
+export const saveTeamMembers = async (companyId: string, members: any[]) => {
+  try {
+    await setDoc(doc(db, "companies", companyId, "settings", "team_members"), {
+      members,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error saving team members:", error);
+    throw error;
+  }
+};
+
+export const fetchTeamMembers = async (companyId: string) => {
+  try {
+    const snap = await getDoc(doc(db, "companies", companyId, "settings", "team_members"));
+    return snap.exists() ? snap.data().members : [];
+  } catch (error) {
+    console.error("Error fetching team members:", error);
+    return [];
+  }
+};
+
