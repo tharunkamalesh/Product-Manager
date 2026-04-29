@@ -3,26 +3,42 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 async function getFirestoreIntegrations(companyId: string) {
   const projectId = process.env.VITE_FIREBASE_PROJECT_ID;
   const apiKey = process.env.VITE_FIREBASE_API_KEY;
-  const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/companies/${companyId}/settings/integrations?key=${apiKey}`;
-  const resp = await fetch(url);
-  if (!resp.ok) return null;
-  const data = await resp.json();
-  if (!data.fields) return null;
-
-  // Parse Firestore document fields
-  const fields = data.fields;
-  const jira: any = {};
-  if (fields.jira?.mapValue?.fields) {
-    const jf = fields.jira.mapValue.fields;
-    jira.accessToken = jf.accessToken?.stringValue;
-    jira.cloudId = jf.cloudId?.stringValue;
-    jira.type = jf.type?.stringValue;
-    jira.domain = jf.domain?.stringValue;
-    jira.email = jf.email?.stringValue;
-    jira.apiToken = jf.apiToken?.stringValue;
-    jira.projectKey = jf.projectKey?.stringValue;
+  
+  if (!projectId || !apiKey) {
+    console.error("[Jira Users] Firebase config missing in environment");
+    return null;
   }
-  return jira;
+
+  const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/companies/${companyId}/settings/integrations?key=${apiKey}`;
+  
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      console.warn(`[Jira Users] Firestore fetch failed for company ${companyId}: ${resp.status}`);
+      return null;
+    }
+    const data = await resp.json();
+    if (!data.fields) return null;
+
+    // Parse Firestore document fields
+    const fields = data.fields;
+    const jira: any = {};
+    if (fields.jira?.mapValue?.fields) {
+      const jf = fields.jira.mapValue.fields;
+      jira.accessToken = jf.accessToken?.stringValue;
+      jira.cloudId = jf.cloudId?.stringValue;
+      jira.type = jf.type?.stringValue;
+      jira.domain = jf.domain?.stringValue;
+      jira.email = jf.email?.stringValue;
+      jira.apiToken = jf.apiToken?.stringValue;
+      jira.projectKey = jf.projectKey?.stringValue;
+      jira.refreshToken = jf.refreshToken?.stringValue;
+    }
+    return jira;
+  } catch (error) {
+    console.error("[Jira Users] Firestore error:", error);
+    return null;
+  }
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -47,9 +63,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // If companyId provided, fetch from Firestore (preferred)
   if (companyId) {
+    console.log("[Jira Users] Resolving credentials for companyId:", companyId);
     try {
       const jira = await getFirestoreIntegrations(companyId);
       if (jira) {
+        console.log("[Jira Users] Found Firestore integrations for company:", companyId, {
+          hasOAuth: !!jira.accessToken,
+          hasBasic: !!jira.apiToken,
+          type: jira.type
+        });
         resolvedAccessToken = jira.accessToken || resolvedAccessToken;
         resolvedCloudId = jira.cloudId || resolvedCloudId;
         resolvedType = jira.type || resolvedType;
@@ -57,9 +79,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         resolvedEmail = jira.email || resolvedEmail;
         resolvedApiToken = jira.apiToken || resolvedApiToken;
         resolvedProjectKey = jira.projectKey || resolvedProjectKey;
+      } else {
+        console.warn("[Jira Users] No Firestore integrations found for company:", companyId);
       }
     } catch (e) {
-      console.warn("[Jira Users] Could not fetch Firestore settings:", e);
+      console.error("[Jira Users] Could not fetch Firestore settings:", e);
     }
   }
 
@@ -86,7 +110,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[Jira Users] Jira API error:", response.status, errorText);
+      console.error(`[Jira Users] Jira API error (${response.status}):`, errorText);
+      
+      if (response.status === 401) {
+        return res.status(401).json({ 
+          error: "Jira session expired", 
+          details: "Your Jira connection has expired. Please go to Integrations and reconnect." 
+        });
+      }
+      
       return res.status(response.status).json({ error: "Jira API Error", details: errorText });
     }
 

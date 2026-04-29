@@ -118,8 +118,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: name });
     
-    // Generate a simple companyId from company name
-    const companyId = companyName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.random().toString(36).substring(2, 7);
+    // Use stable derivation from email to ensure consistency with auto-profiles
+    const companyId = deriveCompanyId(email);
     
     const userProfile: UserProfile = {
       uid: cred.user.uid,
@@ -155,9 +155,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const getCompanyId = (): string | null => {
-    // Prefer the persisted profile value
+    // If we have a profile, its companyId is the absolute source of truth
     if (profile?.companyId) return profile.companyId;
-    // Fall back to deriving from the firebase user email (same algorithm as auto-profile)
+    
+    // If we have a user but are still loading the profile, do NOT derive a fallback yet
+    // to avoid race conditions where the derived ID differs from the profile ID.
+    if (user && loading) return null;
+    
+    // Fall back to deriving from the firebase user email only if profile is definitely missing
     const email = user?.email;
     if (!email) return null;
     return deriveCompanyId(email);

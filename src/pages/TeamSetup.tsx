@@ -28,7 +28,7 @@ interface JiraUser {
 }
 
 const TeamSetup = () => {
-  const { profile } = useAuth();
+  const { profile, getCompanyId } = useAuth();
   const [saving, setSaving] = useState(false);
   const [fetchingUsers, setFetchingUsers] = useState(false);
   const [jiraUsers, setJiraUsers] = useState<JiraUser[]>([]);
@@ -37,12 +37,13 @@ const TeamSetup = () => {
   const [lastSynced, setLastSynced] = useState<string | null>(null);
 
   const fetchJiraUsers = async (showToast = true) => {
-    if (!profile?.companyId) return;
+    const companyId = getCompanyId();
+    if (!companyId) return;
 
     setFetchingUsers(true);
     try {
       // Verify Jira is connected
-      const settings = await fetchCompanySettings(profile.companyId);
+      const settings = await fetchCompanySettings(companyId);
       if (!settings?.jira) {
         setJiraConnected(false);
         if (showToast) toast.error("Please connect Jira first via Settings → Integrations.");
@@ -51,25 +52,34 @@ const TeamSetup = () => {
       setJiraConnected(true);
 
       // Fetch users — pass companyId and let the API read credentials from Firestore
-      const response = await fetch(`/api/jira/users?companyId=${profile.companyId}`);
+      const targetCompanyId = companyId || profile?.companyId || "";
+      const response = await fetch(`/api/jira/users?companyId=${targetCompanyId}`);
 
       if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to fetch Jira users");
+        let errorMsg = "Failed to fetch Jira users";
+        try {
+          const err = await response.json();
+          errorMsg = err.error || errorMsg;
+        } catch (e) {
+          // Response was not JSON
+        }
+        throw new Error(errorMsg);
       }
 
-      const users: JiraUser[] = await response.json();
+      const data = await response.json();
+      const users: JiraUser[] = Array.isArray(data) ? data : [];
 
       if (users.length === 0) {
         toast.warning("No assignable users found in Jira project. Check your project key.");
         return;
       }
 
-      setJiraUsers(users);
+      setJiraUsers(users || []);
       setLastSynced(new Date().toLocaleTimeString());
-      if (showToast) toast.success(`Developers synced from Jira (${users.length} found)`);
+      if (showToast) toast.success(`Developers synced from Jira (${(users || []).length} found)`);
     } catch (error: any) {
       console.error("[TeamSetup] fetchJiraUsers error:", error);
+      setJiraUsers([]);
       if (showToast) toast.error(error.message || "Failed to fetch Jira users.");
     } finally {
       setFetchingUsers(false);
@@ -77,21 +87,23 @@ const TeamSetup = () => {
   };
 
   useEffect(() => {
-    if (!profile?.companyId) return;
+    const companyId = getCompanyId();
+    if (!companyId) return;
     // Load saved mapping + fetch users in parallel
-    fetchTeamMapping(profile.companyId).then((savedMapping) => {
+    fetchTeamMapping(companyId).then((savedMapping) => {
       if (savedMapping && Object.keys(savedMapping).length > 0) {
         setMapping(savedMapping);
       }
     });
     fetchJiraUsers(false);
-  }, [profile?.companyId]);
+  }, [profile?.companyId, getCompanyId()]); // Include derived changes
 
   const handleSaveMapping = async () => {
-    if (!profile?.companyId) return;
+    const companyId = getCompanyId();
+    if (!companyId) return;
     setSaving(true);
     try {
-      await saveTeamMapping(profile.companyId, mapping);
+      await saveTeamMapping(companyId, mapping);
       toast.success("Team mapping saved successfully");
     } catch (error) {
       console.error("[TeamSetup] save error:", error);
@@ -102,7 +114,7 @@ const TeamSetup = () => {
   };
 
   const getUserById = (accountId: string) =>
-    jiraUsers.find((u) => u.accountId === accountId);
+    (jiraUsers || []).find((u) => u?.accountId === accountId);
 
   const mappedCount = Object.values(mapping).filter(Boolean).length;
 
@@ -209,11 +221,11 @@ const TeamSetup = () => {
                           </span>
                         </div>
                         <Select
-                          value={mapping[key] || ""}
+                          value={mapping[key] || "none"}
                           onValueChange={(val) =>
-                            setMapping((prev) => ({ ...prev, [key]: val }))
+                            setMapping((prev) => ({ ...prev, [key]: val === "none" ? "" : val }))
                           }
-                          disabled={fetchingUsers || jiraUsers.length === 0}
+                          disabled={fetchingUsers || (jiraUsers || []).length === 0}
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select a developer">
@@ -232,10 +244,10 @@ const TeamSetup = () => {
                             </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">
+                            <SelectItem value="none">
                               <span className="text-muted-foreground">Unassigned</span>
                             </SelectItem>
-                            {jiraUsers.map((user) => (
+                            {(jiraUsers || []).map((user) => (
                               <SelectItem key={user.accountId} value={user.accountId}>
                                 <div className="flex items-center gap-2">
                                   {user.avatarUrl && (
