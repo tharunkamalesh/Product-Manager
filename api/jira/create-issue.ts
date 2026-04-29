@@ -75,7 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const jiraIssue = {
       fields: {
         project: { key: projectKey },
-        summary: title,
+        summary: (title || "Untitled Task").slice(0, 255),
         description: {
           type: "doc",
           version: 1,

@@ -9,7 +9,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-    const result = await analyze(body, process.env.GEMINI_API_KEY ?? "");
+    const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+    const result = await analyze(body, apiKey);
     return res.status(200).json(result);
   } catch (e: any) {
     const message = e?.message || "Analysis failed";

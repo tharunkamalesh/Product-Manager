@@ -89,7 +89,7 @@ export async function createJiraIssue(body: JiraTaskRequest, env: Record<string,
       issuetype: { name: "Task" },
       priority: { name: jiraPriority },
       ...(dueDate && { duedate: dueDate }),
-      ...(accountId && { assignee: { id: accountId } }),
+      ...(accountId && { assignee: { accountId: accountId } }),
     }
   };
 
