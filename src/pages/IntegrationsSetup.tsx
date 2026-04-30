@@ -85,6 +85,32 @@ const IntegrationsSetup = () => {
     window.location.href = `/api/auth/slack/connect?companyId=${companyId}`;
   };
 
+  const [testingSlack, setTestingSlack] = useState(false);
+  const handleTestSlack = async () => {
+    const companyId = getCompanyId();
+    if (!companyId) return;
+    
+    setTestingSlack(true);
+    try {
+      const res = await fetch("/api/slack/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId })
+      });
+      if (res.ok) {
+        toast.success("Test message sent successfully!");
+      } else {
+        const errorData = await res.json();
+        toast.error(`Failed to send: ${errorData.error}`);
+      }
+    } catch (e: any) {
+      toast.error("Error sending message");
+      console.error(e);
+    } finally {
+      setTestingSlack(false);
+    }
+  };
+
   const isJiraConnected = !!integrations.jira && (integrations.jira.type === "oauth" || !!integrations.jira.apiToken);
   const isSlackConnected = !!integrations.slack && (integrations.slack.type === "oauth" || !!integrations.slack.webhookUrl);
 
@@ -181,10 +207,22 @@ const IntegrationsSetup = () => {
               <CardContent className="flex-1 flex flex-col justify-between">
                 <div className="mb-6">
                   {isSlackConnected ? (
-                    <div className="flex items-center gap-2 text-green-600 bg-green-500/10 p-3 rounded-md border border-green-200">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span className="text-sm font-medium">Slack Connected</span>
-                      <span className="text-[10px] ml-auto text-green-600/70">{integrations.slack?.teamName || "Workspace Ready"}</span>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-green-600 bg-green-500/10 p-3 rounded-md border border-green-200">
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span className="text-sm font-medium">Slack Connected ✅</span>
+                        <span className="text-[10px] ml-auto text-green-600/70">{integrations.slack?.teamName || "Workspace Ready"}</span>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full text-xs" 
+                        onClick={handleTestSlack}
+                        disabled={testingSlack}
+                      >
+                        {testingSlack ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : null}
+                        Send Test Message
+                      </Button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-muted-foreground bg-muted/40 p-3 rounded-md border border-dashed">

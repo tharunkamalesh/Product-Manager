@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { sendSlackMessage } from "../_lib/slack";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -138,6 +139,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const result = await response.json();
     console.log("[create-issue] Issue created:", result.key);
+
+    if (companyId) {
+      try {
+        const slackText = `🚀 Task Assigned: ${title || "Untitled Task"}
+Assigned to: ${assigneeId || "Unassigned"}
+Priority: ${priority || "Low"}
+Jira: ${result.key}`;
+        
+        await sendSlackMessage({ companyId, text: slackText });
+        console.log("[create-issue] Slack notification sent successfully.");
+      } catch (slackError: any) {
+        console.warn("[create-issue] Failed to send Slack notification:", slackError.message);
+      }
+    }
+
     return res.status(200).json({ ...result, fallbackUnassigned: fallbackUsed });
   } catch (error: any) {
     console.error("[create-issue] Server error:", error.message);
