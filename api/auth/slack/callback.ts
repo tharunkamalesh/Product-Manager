@@ -25,7 +25,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     // 1. Exchange code for access token
-    console.log("[Slack Callback] Exchanging code for token...");
+    console.log("[Slack Callback] Exchanging code for token with Slack API...");
+    console.log(`[Slack Callback] Request Payload:`, {
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      code_length: code.length
+    });
+
     const tokenResponse = await fetch("https://slack.com/api/oauth.v2.access", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -39,12 +45,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const tokenData = await tokenResponse.json();
     if (!tokenData.ok) {
-      console.error("[Slack Callback] Token exchange failed", tokenData);
+      console.error("[Slack Callback] Token exchange failed. Response from Slack:", tokenData);
       throw new Error(tokenData.error || "Failed to exchange code");
     }
 
     const { access_token, incoming_webhook, team } = tokenData;
-    console.log("[Slack Callback] Token exchange successful", { team: team?.name });
+    console.log("[Slack Callback] Token exchange successful!");
+    console.log("[Slack Callback] Slack Team Name:", team?.name);
+    console.log("[Slack Callback] Has Webhook:", !!incoming_webhook);
 
     // 2. Store tokens in Firestore
     console.log("[Slack Callback] Updating Firestore for company", companyId);

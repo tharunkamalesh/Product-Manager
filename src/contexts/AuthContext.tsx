@@ -6,7 +6,7 @@ import {
   onAuthStateChanged,
   updateProfile,
   setPersistence,
-  browserSessionPersistence,
+  browserLocalPersistence,
   User,
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
@@ -65,8 +65,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initPersistence = async () => {
       try {
-        await setPersistence(auth, browserSessionPersistence);
-        console.log("[AuthContext] Persistence set to SESSION on startup.");
+        await setPersistence(auth, browserLocalPersistence);
+        console.log("[AuthContext] Persistence set to LOCAL on startup.");
       } catch (err) {
         console.error("[AuthContext] Failed to set persistence on startup:", err);
       }
@@ -114,7 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signup = async (name: string, email: string, password: string, companyName: string) => {
-    await setPersistence(auth, browserSessionPersistence);
+    await setPersistence(auth, browserLocalPersistence);
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: name });
     
@@ -135,7 +135,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const login = async (email: string, password: string) => {
-    await setPersistence(auth, browserSessionPersistence);
+    await setPersistence(auth, browserLocalPersistence);
     await signInWithEmailAndPassword(auth, email, password);
   };
 
