@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: ai-saas-deployment
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: ai-saas
+
+  template:
+    metadata:
+      labels:
+        app: ai-saas
+
+    spec:
+      containers:
+        - name: ai-saas-container
+          image: tharunkamalesh/ai-saas-full:latest
+
+          command: ["npm"]
+
+          args:
+            [
+              "run",
+              "preview",
+              "--",
+              "--host",
+              "0.0.0.0",
+              "--port",
+              "4173"
+            ]
+
+          ports:
+            - containerPort: 4173
